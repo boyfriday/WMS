@@ -2,6 +2,22 @@ import { useEffect, useState } from 'react';
 import { orderService } from '../services/orderService';
 import { productService } from '../services/productService';
 import type { Order, Product } from '../types';
+import {
+  ShoppingBag,
+  Plus,
+  X,
+  Search,
+  ShoppingCart,
+  Minus,
+  Check,
+  Calendar,
+  AlertCircle,
+  Truck,
+  CheckCircle2,
+  Hourglass,
+  Receipt,
+  Tag,
+} from 'lucide-react';
 
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -9,6 +25,9 @@ export default function Orders() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [cart, setCart] = useState<{ productId: string; quantity: number }[]>([]);
+  
+  // Search products inside checkout
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
@@ -17,8 +36,10 @@ export default function Orders() {
         orderService.getOrders(),
         productService.getProducts(),
       ]);
-      setOrders(oRes.data.data);
-      setProducts(pRes.data.data.filter(p => p.stock > 0));
+      setOrders(oRes.data.data || []);
+      setProducts((pRes.data.data || []).filter(p => p.stock > 0));
+    } catch (err) {
+      console.error('Error loading order data:', err);
     } finally {
       setLoading(false);
     }
@@ -29,8 +50,14 @@ export default function Orders() {
   }, []);
 
   const addToCart = (productId: string) => {
+    const p = products.find(x => x.id === productId);
+    if (!p) return;
     const existing = cart.find(c => c.productId === productId);
     if (existing) {
+      if (existing.quantity >= p.stock) {
+        alert(`Cannot add more. Only ${p.stock} units available in inventory.`);
+        return;
+      }
       setCart(cart.map(c => c.productId === productId ? { ...c, quantity: c.quantity + 1 } : c));
     } else {
       setCart([...cart, { productId, quantity: 1 }]);
@@ -38,6 +65,12 @@ export default function Orders() {
   };
 
   const updateQty = (productId: string, qty: number) => {
+    const p = products.find(x => x.id === productId);
+    if (!p) return;
+    if (qty > p.stock) {
+      alert(`Only ${p.stock} units available in stock.`);
+      return;
+    }
     if (qty <= 0) {
       setCart(cart.filter(c => c.productId !== productId));
     } else {
@@ -47,75 +80,209 @@ export default function Orders() {
 
   const handleSubmit = async () => {
     if (cart.length === 0) return alert('Please add items to cart');
-    await orderService.createOrder({ items: cart });
-    setCart([]);
-    setShowForm(false);
-    fetchData();
+    try {
+      await orderService.createOrder({ items: cart });
+      setCart([]);
+      setShowForm(false);
+      fetchData();
+    } catch (err) {
+      console.error('Error placing order:', err);
+    }
   };
 
   const statusColor: Record<string, string> = {
-    Pending: 'bg-warning/10 text-warning',
-    Confirmed: 'bg-primary/10 text-primary',
-    Shipped: 'bg-secondary/10 text-secondary',
-    Delivered: 'bg-success/10 text-success',
-    Cancelled: 'bg-danger/10 text-danger',
+    Pending: 'bg-warning/10 text-warning border-warning/20',
+    Confirmed: 'bg-primary/10 text-primary border-primary/20',
+    Shipped: 'bg-info/10 text-info border-info/20',
+    Delivered: 'bg-success/10 text-success border-success/20',
+    Cancelled: 'bg-danger/10 text-danger border-danger/20',
   };
 
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  const statusIcons: Record<string, React.ReactNode> = {
+    Pending: <Hourglass size={14} />,
+    Confirmed: <Check size={14} />,
+    Shipped: <Truck size={14} />,
+    Delivered: <CheckCircle2 size={14} />,
+    Cancelled: <X size={14} />,
+  };
+
+  // Get status stage step index for tracking line
+  const getStatusStepIndex = (status: string) => {
+    const steps = ['Pending', 'Confirmed', 'Shipped', 'Delivered'];
+    return steps.indexOf(status);
+  };
+
+  // Filter products by checkout search query
+  const filteredProducts = products.filter(p =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Cart total calculator
+  const cartSubtotal = cart.reduce((sum, item) => {
+    const p = products.find(x => x.id === item.productId);
+    return sum + (p?.price || 0) * item.quantity;
+  }, 0);
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
+        <div className="flex justify-between items-center mb-8">
+          <div className="h-8 bg-slate-200 rounded w-1/4"></div>
+          <div className="h-10 bg-slate-200 rounded w-32"></div>
+        </div>
+        <div className="space-y-6">
+          <div className="h-40 bg-slate-200 rounded-2xl"></div>
+          <div className="h-40 bg-slate-200 rounded-2xl"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Orders</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <ShoppingBag className="text-primary" size={24} />
+            Order Registry
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Track customer distribution orders and launch checkout workflows.
+          </p>
+        </div>
         <button
-          onClick={() => { setShowForm(!showForm); setCart([]); }}
-          className="bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark"
+          onClick={() => {
+            setShowForm(!showForm);
+            setCart([]);
+          }}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition-all duration-200 hover:-translate-y-0.5
+            ${showForm
+              ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-none'
+              : 'bg-primary text-white hover:bg-primary-dark shadow-primary/10 hover:shadow-primary/20'
+            }`}
         >
-          {showForm ? 'Cancel' : 'New Order'}
+          {showForm ? <X size={16} /> : <Plus size={16} />}
+          {showForm ? 'Close Sales Desk' : 'New Order'}
         </button>
       </div>
 
+      {/* Interactive Checkout Drawer / Sales Desk */}
       {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow mb-6">
-          <h3 className="font-semibold mb-4">Create Order</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <h4 className="text-sm font-medium mb-2">Available Products</h4>
-              <div className="border rounded max-h-64 overflow-y-auto">
-                {products.map(p => (
-                  <div key={p.id} className="flex justify-between items-center px-4 py-2 border-b hover:bg-gray-50">
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-lg p-6 mb-8 animate-slide-up">
+          <h3 className="text-base font-bold text-slate-800 mb-5 flex items-center gap-2 border-b border-slate-100 pb-3">
+            <ShoppingCart size={18} className="text-primary animate-bounce" />
+            Interactive Sales Desk & Checkout
+          </h3>
+
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            {/* Left Column (3/5 width): Catalog Picker */}
+            <div className="lg:col-span-3 space-y-4">
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-3 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Quick lookup items in stock..."
+                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none transition-all text-slate-800"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className="border border-slate-100 rounded-2xl max-h-[360px] overflow-y-auto divide-y divide-slate-100 bg-slate-50/50">
+                {filteredProducts.map(p => (
+                  <div key={p.id} className="flex justify-between items-center p-3.5 hover:bg-white transition-colors">
                     <div>
-                      <div className="font-medium">{p.name}</div>
-                      <div className="text-xs text-gray-500">${p.price} | Stock: {p.stock}</div>
+                      <div className="font-semibold text-sm text-slate-800">{p.name}</div>
+                      <div className="text-xs text-slate-400 font-medium mt-0.5">
+                        ${p.price.toFixed(2)} | <span className="font-semibold text-slate-500">In Stock: {p.stock}</span>
+                      </div>
                     </div>
-                    <button onClick={() => addToCart(p.id)} className="text-primary text-sm font-medium hover:underline">
-                      Add
+                    <button
+                      onClick={() => addToCart(p.id)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 text-primary hover:bg-primary hover:text-white transition-all"
+                    >
+                      Add to Cart
                     </button>
                   </div>
                 ))}
+                
+                {filteredProducts.length === 0 && (
+                  <div className="p-8 text-center text-slate-400 flex flex-col items-center gap-1.5">
+                    <AlertCircle size={22} className="text-slate-300" />
+                    <span className="text-xs font-semibold">No available items found</span>
+                  </div>
+                )}
               </div>
             </div>
-            <div>
-              <h4 className="text-sm font-medium mb-2">Cart</h4>
-              {cart.length === 0 ? (
-                <div className="text-gray-500 text-sm">No items added</div>
-              ) : (
-                <div className="space-y-2">
-                  {cart.map(c => {
-                    const p = products.find(x => x.id === c.productId);
+
+            {/* Right Column (2/5 width): Glassmorphic Cart Sidebar */}
+            <div className="lg:col-span-2 bg-slate-50/70 border border-slate-100 rounded-2xl p-5 flex flex-col justify-between">
+              <div>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+                  Shopping Cart ({cart.length})
+                </h4>
+                
+                <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                  {cart.map(item => {
+                    const p = products.find(x => x.id === item.productId);
+                    if (!p) return null;
                     return (
-                      <div key={c.productId} className="flex justify-between items-center border rounded px-3 py-2">
-                        <span className="text-sm">{p?.name}</span>
+                      <div key={item.productId} className="flex justify-between items-center bg-white border border-slate-100 p-3 rounded-xl shadow-2xs">
+                        <div className="flex-1 min-w-0 pr-2">
+                          <div className="text-xs font-bold text-slate-800 truncate">{p.name}</div>
+                          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">${p.price.toFixed(2)} / unit</div>
+                        </div>
                         <div className="flex items-center gap-2">
-                          <button onClick={() => updateQty(c.productId, c.quantity - 1)} className="w-6 h-6 bg-gray-100 rounded">-</button>
-                          <span className="text-sm w-6 text-center">{c.quantity}</span>
-                          <button onClick={() => updateQty(c.productId, c.quantity + 1)} className="w-6 h-6 bg-gray-100 rounded">+</button>
+                          <button
+                            onClick={() => updateQty(item.productId, item.quantity - 1)}
+                            className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
+                          >
+                            <Minus size={12} />
+                          </button>
+                          <span className="text-xs font-bold text-slate-800 w-5 text-center">{item.quantity}</span>
+                          <button
+                            onClick={() => updateQty(item.productId, item.quantity + 1)}
+                            className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
+                          >
+                            <Plus size={12} />
+                          </button>
                         </div>
                       </div>
                     );
                   })}
-                  <button onClick={handleSubmit} className="w-full bg-success text-white py-2 rounded hover:opacity-90 mt-2">
-                    Place Order
+
+                  {cart.length === 0 && (
+                    <div className="py-12 text-center text-slate-400 flex flex-col items-center gap-1">
+                      <ShoppingBag size={24} className="text-slate-300 animate-pulse" />
+                      <span className="text-xs font-medium">Cart is empty</span>
+                      <span className="text-[10px] text-slate-400">Select items from the catalog.</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Checkout Calculation and Button */}
+              {cart.length > 0 && (
+                <div className="border-t border-slate-200/80 mt-5 pt-4 space-y-3">
+                  <div className="flex justify-between text-xs text-slate-500 font-medium">
+                    <span>Subtotal</span>
+                    <span>${cartSubtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-500 font-medium">
+                    <span>Shipping</span>
+                    <span className="text-emerald-600 font-semibold">FREE</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-bold text-slate-800 border-t border-dashed border-slate-200 pt-2">
+                    <span>Total Amount</span>
+                    <span>${cartSubtotal.toFixed(2)}</span>
+                  </div>
+                  <button
+                    onClick={handleSubmit}
+                    className="w-full mt-2 bg-success text-white hover:opacity-90 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-success/15 flex items-center justify-center gap-1.5"
+                  >
+                    <Receipt size={14} />
+                    Place Distribution Order
                   </button>
                 </div>
               )}
@@ -124,33 +291,118 @@ export default function Orders() {
         </div>
       )}
 
-      <div className="space-y-4">
+      {/* Orders List Display */}
+      <div className="space-y-6">
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">
+          Active Invoices & Logs ({orders.length})
+        </h2>
+
         {orders.map(o => (
-          <div key={o.id} className="bg-white p-6 rounded-lg shadow border border-gray-100">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <div className="font-semibold">Order #{o.id.slice(0, 8)}</div>
-                <div className="text-xs text-gray-500">{new Date(o.createdAt).toLocaleString()}</div>
+          <div
+            key={o.id}
+            className="bg-white border border-slate-200/60 p-6 rounded-2xl shadow-xs hover:shadow-md transition-all duration-300"
+          >
+            {/* Header info */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-700">
+                  <Receipt size={20} />
+                </div>
+                <div>
+                  <div className="font-extrabold text-sm text-slate-800 tracking-tight">Invoice #{o.id.slice(0, 8)}</div>
+                  <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium mt-0.5">
+                    <Calendar size={11} />
+                    {new Date(o.createdAt).toLocaleString()}
+                  </div>
+                </div>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor[o.status] || 'bg-gray-100'}`}>
-                {o.status}
-              </span>
+              
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border capitalize ${statusColor[o.status] || 'bg-slate-50'}`}>
+                  {statusIcons[o.status]}
+                  {o.status}
+                </span>
+              </div>
             </div>
-            <div className="space-y-1">
+
+            {/* Stepper Timeline Tracker (For active non-cancelled stages) */}
+            {o.status !== 'Cancelled' && (
+              <div className="mb-6 max-w-xl mx-auto px-4">
+                <div className="relative flex justify-between items-center w-full">
+                  {/* Background Progress Bar */}
+                  <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-slate-100 rounded-full z-0"></div>
+                  
+                  {/* Colored active fill line */}
+                  <div
+                    className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-indigo-500 rounded-full z-0 transition-all duration-500"
+                    style={{
+                      width: `${(getStatusStepIndex(o.status) / 3) * 100}%`,
+                    }}
+                  ></div>
+
+                  {/* Stepper points */}
+                  {['Pending', 'Confirmed', 'Shipped', 'Delivered'].map((step, idx) => {
+                    const stepIdx = getStatusStepIndex(o.status);
+                    const isCompleted = idx <= stepIdx;
+                    const isActive = idx === stepIdx;
+
+                    return (
+                      <div key={step} className="relative z-10 flex flex-col items-center">
+                        <div
+                          className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all duration-300
+                            ${isCompleted
+                              ? 'bg-primary border-primary text-white shadow-md shadow-primary/25'
+                              : 'bg-white border-slate-200 text-slate-400'
+                            }
+                            ${isActive ? 'scale-120 ring-4 ring-primary/10' : ''}`}
+                        >
+                          {isCompleted ? <Check size={10} /> : idx + 1}
+                        </div>
+                        <span className={`text-[10px] font-bold mt-1.5 ${isCompleted ? 'text-slate-700' : 'text-slate-400'}`}>
+                          {step}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Item lists */}
+            <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100/80 mb-4 space-y-2.5">
+              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Itemized Manifest</span>
               {o.items.map((item, idx) => (
-                <div key={idx} className="flex justify-between text-sm">
-                  <span>{item.productName} x {item.quantity}</span>
-                  <span className="text-gray-600">${(item.unitPrice * item.quantity).toFixed(2)}</span>
+                <div key={idx} className="flex justify-between items-center text-xs text-slate-600 font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <Tag size={12} className="text-slate-400" />
+                    <span>{item.productName}</span>
+                    <span className="text-[10px] text-slate-400 px-1.5 py-0.5 rounded-md bg-white border border-slate-100 font-semibold font-mono">
+                      x{item.quantity}
+                    </span>
+                  </div>
+                  <span className="text-slate-800 font-semibold">${(item.unitPrice * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
             </div>
-            <div className="border-t mt-3 pt-3 flex justify-between font-semibold">
-              <span>Total</span>
-              <span>${o.totalAmount.toFixed(2)}</span>
+
+            {/* Total Billing */}
+            <div className="flex justify-between items-center font-bold text-sm text-slate-800 border-t border-dashed border-slate-200 pt-3.5 px-1">
+              <span className="flex items-center gap-1.5">
+                <Receipt size={15} className="text-slate-400" />
+                Grand Total Billing
+              </span>
+              <span className="text-base text-slate-900 font-black">${o.totalAmount.toFixed(2)}</span>
             </div>
           </div>
         ))}
-        {orders.length === 0 && <div className="text-center text-gray-500 py-8">No orders found</div>}
+
+        {orders.length === 0 && (
+          <div className="bg-white border border-slate-100 rounded-2xl py-12 text-center text-slate-400 flex flex-col items-center gap-2">
+            <ShoppingBag size={28} className="text-slate-300" />
+            <span className="text-sm font-semibold">No orders in pipeline</span>
+            <span className="text-xs text-slate-400">Launch checkout by clicking 'New Order' above.</span>
+          </div>
+        )}
       </div>
     </div>
   );
