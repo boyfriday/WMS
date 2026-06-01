@@ -1,0 +1,79 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: wms-postgres
+    environment:
+      POSTGRES_USER: wms
+      POSTGRES_PASSWORD: wms123
+      POSTGRES_DB: wms_core
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - wms-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wms"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  wms-core-api:
+    build: ./wms-core-api
+    container_name: wms-core-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=wms_core;Username=wms;Password=wms123"
+      Jwt__Key: "your-super-secret-key-for-jwt-signing-must-be-at-least-32-characters-long"
+      Jwt__Issuer: "WmsCoreApi"
+      Jwt__Audience: "WmsClient"
+      Jwt__ExpiryHours: "24"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - wms-network
+
+  wms-order-api:
+    build: ./wms-order-api
+    container_name: wms-order-api
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: wms
+      DB_PASSWORD: wms123
+      DB_NAME: wms_order
+      JWT_SECRET: "your-super-secret-key-for-jwt-signing-must-be-at-least-32-characters-long"
+      CORE_API_URL: "http://wms-core-api:8080"
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      wms-core-api:
+        condition: service_started
+    networks:
+      - wms-network
+
+  wms-client:
+    build: ./wms-client
+    container_name: wms-client
+    ports:
+      - "80:80"
+    depends_on:
+      - wms-core-api
+      - wms-order-api
+    networks:
+      - wms-network
+
+volumes:
+  postgres_data:
+
+networks:
+  wms-network:
+    driver: bridge

@@ -1,0 +1,39 @@
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+main
+wms-order-api
+
+# Go workspace
+go.work
+go.work.sum
+
+# Dependencies (vendor if used)
+vendor/
+
+# Build output
+/bin/
+/dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Swagger generated (optional - keep docs.go for build)
+# docs/swagger.json
+# docs/swagger.yaml

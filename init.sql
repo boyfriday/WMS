@@ -1,0 +1,2 @@
+CREATE DATABASE wms_order;
+GRANT ALL PRIVILEGES ON DATABASE wms_order TO wms;
