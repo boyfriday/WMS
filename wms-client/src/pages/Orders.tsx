@@ -17,7 +17,7 @@ import {
   Hourglass,
   Receipt,
   Tag,
-} from '../components/Icons';
+} from 'lucide-react';
 
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);

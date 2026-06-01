@@ -9,7 +9,7 @@ import {
   FolderPlus,
   AlertCircle,
   Bookmark,
-} from '../components/Icons';
+} from 'lucide-react';
 
 export default function Categories() {
   const [categories, setCategories] = useState<Category[]>([]);
