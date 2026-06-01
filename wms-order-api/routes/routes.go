@@ -3,12 +3,13 @@ package routes
 import (
 	"github.com/gofiber/fiber/v3"
 	"gorm.io/gorm"
+	"wms-order-api/config"
 	"wms-order-api/handlers"
 	"wms-order-api/middleware"
 )
 
-func SetupRoutes(app *fiber.App, db *gorm.DB) {
-	orderHandler := &handlers.OrderHandler{DB: db}
+func SetupRoutes(app *fiber.App, db *gorm.DB, rabbitmq *config.RabbitMQ) {
+	orderHandler := &handlers.OrderHandler{DB: db, RabbitMQ: rabbitmq}
 
 	api := app.Group("/")
 	api.Use(middleware.JWTMiddleware())

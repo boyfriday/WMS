@@ -30,6 +30,12 @@ func main() {
 
 	db.AutoMigrate(&models.Order{}, &models.OrderItem{})
 
+	rabbitmq, err := config.InitRabbitMQ()
+	if err != nil {
+		log.Fatal("failed to connect rabbitmq: ", err)
+	}
+	defer rabbitmq.Close()
+
 	app := fiber.New()
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
@@ -39,7 +45,7 @@ func main() {
 
 	app.Get("/swagger/*", adaptor.HTTPHandler(httpSwagger.Handler(httpSwagger.URL("/swagger/doc.json"))))
 
-	routes.SetupRoutes(app, db)
+	routes.SetupRoutes(app, db, rabbitmq)
 
 	log.Fatal(app.Listen(":3000"))
 }

@@ -21,6 +21,25 @@ services:
       timeout: 5s
       retries: 5
 
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: wms-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: wms
+      RABBITMQ_DEFAULT_PASS: wms123
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - wms-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   wms-core-api:
     build: ./wms-core-api
     container_name: wms-core-api
@@ -31,10 +50,16 @@ services:
       Jwt__Issuer: "WmsCoreApi"
       Jwt__Audience: "WmsClient"
       Jwt__ExpiryHours: "24"
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Port: "5672"
+      RabbitMQ__Username: wms
+      RabbitMQ__Password: wms123
     ports:
       - "8080:8080"
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - wms-network
@@ -50,10 +75,13 @@ services:
       DB_NAME: wms_order
       JWT_SECRET: "your-super-secret-key-for-jwt-signing-must-be-at-least-32-characters-long"
       CORE_API_URL: "http://wms-core-api:8080"
+      RABBITMQ_URL: "amqp://wms:wms123@rabbitmq:5672/"
     ports:
       - "3000:3000"
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
       wms-core-api:
         condition: service_started
@@ -73,6 +101,7 @@ services:
 
 volumes:
   postgres_data:
+  rabbitmq_data:
 
 networks:
   wms-network:

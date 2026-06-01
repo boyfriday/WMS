@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,7 +13,8 @@ import (
 )
 
 type OrderHandler struct {
-	DB *gorm.DB
+	DB       *gorm.DB
+	RabbitMQ *config.RabbitMQ
 }
 
 type CreateOrderRequest struct {
@@ -113,6 +113,7 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 
 	var orderItems []models.OrderItem
 	var totalAmount float64
+	orderID := uuid.New()
 
 	for _, item := range req.Items {
 		productID, err := uuid.Parse(item.ProductID)
@@ -143,41 +144,15 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 			})
 		}
 
-		// Deduct stock via core API
-		// Fetch full product to get categoryId
-		productReq2, _ := http.NewRequest("GET", fmt.Sprintf("%s/products/%s", coreURL, productID), nil)
-		productReq2.Header.Set("Authorization", token)
-		productResp2, _ := http.DefaultClient.Do(productReq2)
-		var fullProduct struct {
-			Data struct {
-				CategoryID string `json:"categoryId"`
-				Name       string `json:"name"`
-				Price      float64 `json:"price"`
-				Description *string `json:"description"`
-			} `json:"data"`
-		}
-		if productResp2 != nil && productResp2.StatusCode == 200 {
-			json.NewDecoder(productResp2.Body).Decode(&fullProduct)
-			productResp2.Body.Close()
-		}
-
-		updateBody, _ := json.Marshal(map[string]interface{}{
-			"name":        fullProduct.Data.Name,
-			"description": fullProduct.Data.Description,
-			"price":       fullProduct.Data.Price,
-			"stock":       product.Stock - item.Quantity,
-			"categoryId":  fullProduct.Data.CategoryID,
+		// Publish stock deduct message to RabbitMQ (async processing)
+		err = h.RabbitMQ.PublishStockDeduct(config.StockDeductMessage{
+			ProductID: productID.String(),
+			Quantity:  item.Quantity,
+			OrderID:   orderID.String(),
 		})
-
-		updateReq, _ := http.NewRequest("PUT", fmt.Sprintf("%s/products/%s", coreURL, productID), bytes.NewReader(updateBody))
-		updateReq.Header.Set("Authorization", token)
-		updateReq.Header.Set("Content-Type", "application/json")
-		updateResp, err := http.DefaultClient.Do(updateReq)
-		if err != nil || updateResp.StatusCode != 200 {
-			if updateResp != nil { updateResp.Body.Close() }
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": fmt.Sprintf("failed to update stock for %s", product.Name)})
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": fmt.Sprintf("failed to queue stock deduction for %s: %v", product.Name, err)})
 		}
-		updateResp.Body.Close()
 
 		orderItems = append(orderItems, models.OrderItem{
 			ProductID:   productID,
@@ -189,6 +164,7 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 	}
 
 	order := models.Order{
+		ID:          orderID,
 		UserID:      userID,
 		TotalAmount: totalAmount,
 		Status:      "Pending",
