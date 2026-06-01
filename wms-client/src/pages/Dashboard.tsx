@@ -14,7 +14,7 @@ import {
   PlusCircle,
   ArrowRight,
   ShieldCheck,
-} from 'lucide-react';
+} from '../components/Icons';
 
 export default function Dashboard() {
   const { user, setAuth, logout } = useAuthStore();

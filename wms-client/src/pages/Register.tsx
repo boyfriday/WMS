@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { useAuthStore } from '../store/authStore';
-import { User, Mail, Lock, UserPlus, AlertCircle, Loader2 } from 'lucide-react';
+import { User, Mail, Lock, UserPlus, AlertCircle, Loader2 } from '../components/Icons';
 
 export default function Register() {
   const [fullName, setFullName] = useState('');

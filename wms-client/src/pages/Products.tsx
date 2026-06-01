@@ -11,7 +11,7 @@ import {
   Trash2,
   AlertCircle,
   Boxes,
-} from 'lucide-react';
+} from '../components/Icons';
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
