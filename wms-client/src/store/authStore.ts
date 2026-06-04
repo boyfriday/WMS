@@ -11,11 +11,14 @@ interface AuthState {
   init: () => void;
 }
 
+const initialToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+const initialRefreshToken = typeof window !== 'undefined' ? localStorage.getItem('refreshToken') : null;
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  token: null,
-  refreshToken: null,
-  isAuthenticated: false,
+  token: initialToken,
+  refreshToken: initialRefreshToken,
+  isAuthenticated: !!(initialToken && initialRefreshToken),
   setAuth: (token, refreshToken, user) => {
     localStorage.setItem('token', token);
     localStorage.setItem('refreshToken', refreshToken);
@@ -27,10 +30,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ token: null, refreshToken: null, user: null, isAuthenticated: false });
   },
   init: () => {
-    const token = localStorage.getItem('token');
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (token && refreshToken) {
-      set({ token, refreshToken, isAuthenticated: true });
-    }
+    // Already synchronously initialized
   },
 }));

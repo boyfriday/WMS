@@ -13,7 +13,8 @@ import {
   Mail,
   Phone,
   MapPin,
-  Calendar,
+  Search,
+  X,
 } from "lucide-react";
 import ProtectedRoute from "../components/ProtectedRoute";
 
@@ -30,6 +31,7 @@ export default function Customers() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -136,11 +138,19 @@ export default function Customers() {
     );
   }
 
+  const filteredCustomers = customers.filter(c => {
+    const q = searchQuery.toLowerCase();
+    return c.name.toLowerCase().includes(q) ||
+      c.email.toLowerCase().includes(q) ||
+      c.phone.toLowerCase().includes(q) ||
+      c.address.toLowerCase().includes(q);
+  });
+
   return (
     <ProtectedRoute allowedRoles={["Admin", "Operator"]}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
         {/* Title Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
               <Users className="text-primary" size={24} />
@@ -158,15 +168,15 @@ export default function Customers() {
               setForm({ name: "", email: "", phone: "", address: "" });
               setErrorMsg(null);
             }}
-            className={`lg:hidden flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition-all
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition-all duration-200 hover:-translate-y-0.5
               ${
                 showForm
                   ? "bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-none"
-                  : "bg-primary text-white hover:bg-primary-dark shadow-primary/10"
+                  : "bg-primary text-white hover:bg-primary-dark shadow-primary/10 hover:shadow-primary/20"
               }`}
           >
-            {showForm ? "Cancel" : <Plus size={16} />}
-            {showForm ? "" : "Add Customer"}
+            {showForm ? <X size={16} /> : <Plus size={16} />}
+            {showForm ? "Close Form" : "Add Customer"}
           </button>
         </div>
 
@@ -177,111 +187,20 @@ export default function Customers() {
           </div>
         )}
 
-        {/* Main Split Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          {/* Left Side: Customers list */}
-          <div className="lg:col-span-2 space-y-4">
-            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">
-              Registered Accounts ({customers.length})
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {customers.map((c) => (
-                <div
-                  key={c.id}
-                  className="bg-white border border-slate-200/70 p-5 rounded-2xl shadow-xs glow-card flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-center justify-between gap-3 mb-3 border-b border-slate-50 pb-2">
-                      <div className="w-8 h-8 rounded-lg bg-indigo-50 text-primary flex items-center justify-center">
-                        <Users size={16} />
-                      </div>
-                      <span className="text-[10px] font-mono text-slate-400">
-                        ID: #{c.id.slice(0, 8)}
-                      </span>
-                    </div>
-                    <h3 className="text-base font-bold text-slate-800 tracking-tight">
-                      {c.name}
-                    </h3>
-
-                    <div className="mt-4 space-y-2 text-xs text-slate-500 font-medium">
-                      <div className="flex items-center gap-2">
-                        <Mail size={12} className="text-slate-400" />
-                        <span className="truncate">{c.email}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Phone size={12} className="text-slate-400" />
-                        <span>{c.phone}</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <MapPin
-                          size={12}
-                          className="text-slate-400 mt-0.5 shrink-0"
-                        />
-                        <span className="line-clamp-2 leading-normal">
-                          {c.address}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-[10px] text-slate-400 pt-1">
-                        <Calendar size={11} />
-                        <span>
-                          Added: {new Date(c.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex justify-end gap-1 border-t border-slate-100 mt-4 pt-3">
-                    <button
-                      onClick={() => handleEdit(c)}
-                      title="Edit Customer"
-                      className="p-1.5 rounded-lg text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                    {user?.role === "Admin" && (
-                      <button
-                        onClick={() => handleDelete(c.id)}
-                        title="Delete Customer"
-                        className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {customers.length === 0 && (
-                <div className="col-span-full bg-white border border-slate-100 rounded-2xl p-8 text-center text-slate-400 flex flex-col items-center gap-2">
-                  <AlertCircle size={28} className="text-slate-300" />
-                  <span className="text-sm font-semibold">
-                    No customers cataloged
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    Create a customer profile on the right to start.
-                  </span>
-                </div>
+        {/* Accordion / Drawer style Creation and Edit Form */}
+        {showForm && (
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-md mb-8 animate-slide-up">
+            <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+              {editingId ? (
+                <Edit2 size={16} className="text-primary" />
+              ) : (
+                <UserPlus size={18} className="text-primary" />
               )}
-            </div>
-          </div>
+              {editingId ? "Edit Shipping Profile" : "New Shipping Profile"}
+            </h3>
 
-          {/* Right Side: Form */}
-          <div
-            className={`lg:block lg:sticky lg:top-24 ${showForm ? "block" : "hidden lg:block"} animate-slide-up`}
-          >
-            <div className="bg-white border border-slate-200/80 p-6 rounded-2xl shadow-sm">
-              <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-                {editingId ? (
-                  <Edit2 size={16} className="text-primary" />
-                ) : (
-                  <UserPlus size={18} className="text-primary" />
-                )}
-                {editingId ? "Edit Shipping Profile" : "New Shipping Profile"}
-              </h3>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
                     Full Name / Company
@@ -327,52 +246,177 @@ export default function Customers() {
                     required
                   />
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Shipping Address
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="123 Business Rd, Industrial Zone, BKK 10110..."
+                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3.5 py-2.5 text-sm transition-all focus:outline-none text-slate-800"
+                  value={form.address}
+                  onChange={(e) =>
+                    setForm({ ...form, address: e.target.value })
+                  }
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingId(null);
+                    setForm({
+                      name: "",
+                      email: "",
+                      phone: "",
+                      address: "",
+                    });
+                    setShowForm(false);
+                    setErrorMsg(null);
+                  }}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-primary text-white hover:bg-primary-dark px-5 py-2 rounded-xl text-xs font-bold transition-colors shadow-md shadow-primary/10"
+                >
+                  {editingId ? "Save Changes" : "Register Customer"}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Search Panel */}
+        <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm mb-6 flex items-center gap-4">
+          <div className="relative flex-1">
+            <Search
+              size={16}
+              className="absolute left-3.5 top-3.5 text-slate-400"
+            />
+            <input
+              type="text"
+              placeholder="Search customers by name, email, phone or address..."
+              className="w-full border border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/10 rounded-xl pl-10 pr-4 py-2.5 text-sm transition-all focus:outline-none"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Customers Table Display */}
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Customer Name
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Contact Info
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
                     Shipping Address
-                  </label>
-                  <textarea
-                    rows={4}
-                    placeholder="123 Business Rd, Industrial Zone, BKK 10110..."
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3.5 py-2.5 text-sm transition-all focus:outline-none text-slate-800"
-                    value={form.address}
-                    onChange={(e) =>
-                      setForm({ ...form, address: e.target.value })
-                    }
-                    required
-                  />
-                </div>
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Created Date
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {filteredCustomers.map((c) => (
+                  <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-indigo-50 text-primary flex items-center justify-center">
+                          <Users size={18} />
+                        </div>
+                        <div>
+                          <div className="font-semibold text-slate-800 text-sm">
+                            {c.name}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-medium font-mono">
+                            ID: #{c.id.slice(0, 8)}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1 text-xs text-slate-600 font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <Mail size={12} className="text-slate-400 shrink-0" />
+                          <span>{c.email}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Phone size={12} className="text-slate-400 shrink-0" />
+                          <span>{c.phone}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-start gap-1.5 text-xs text-slate-600 max-w-xs md:max-w-md">
+                        <MapPin
+                          size={12}
+                          className="text-slate-400 mt-0.5 shrink-0"
+                        />
+                        <span className="line-clamp-2 leading-relaxed">
+                          {c.address}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-slate-500 font-medium font-mono">
+                      {new Date(c.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleEdit(c)}
+                          title="Edit Customer"
+                          className="p-1.5 rounded-lg text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                        {user?.role === "Admin" && (
+                          <button
+                            onClick={() => handleDelete(c.id)}
+                            title="Delete Customer"
+                            className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
 
-                <div className="flex gap-2 pt-2">
-                  {editingId && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingId(null);
-                        setForm({
-                          name: "",
-                          email: "",
-                          phone: "",
-                          address: "",
-                        });
-                        setShowForm(false);
-                        setErrorMsg(null);
-                      }}
-                      className="flex-1 px-4 py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
-                    >
-                      Clear
-                    </button>
-                  )}
-                  <button
-                    type="submit"
-                    className="flex-3 bg-primary text-white hover:bg-primary-dark px-4 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-md shadow-primary/10 w-full"
-                  >
-                    {editingId ? "Save Changes" : "Register Customer"}
-                  </button>
-                </div>
-              </form>
-            </div>
+                {filteredCustomers.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <AlertCircle size={28} className="text-slate-300 animate-pulse" />
+                        <span className="text-sm font-semibold">
+                          No customers found
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          Add a customer profile using the button above.
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

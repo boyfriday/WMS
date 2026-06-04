@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { orderService } from "../services/orderService";
 import { productService } from "../services/productService";
@@ -22,6 +22,8 @@ import {
   Tag,
   Users,
   MapPin,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 export default function Orders() {
@@ -38,6 +40,10 @@ export default function Orders() {
 
   // Search products inside checkout
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Orders table states
+  const [ordersSearchQuery, setOrdersSearchQuery] = useState("");
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   // Claim modal states
   const [showClaimModal, setShowClaimModal] = useState(false);
@@ -225,6 +231,19 @@ export default function Orders() {
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  // Filter orders by search query
+  const filteredOrders = orders.filter((o) => {
+    const q = ordersSearchQuery.toLowerCase();
+    const statusLabel = statusThaiLabels[o.status] || o.status;
+    return (
+      o.id.toLowerCase().includes(q) ||
+      (o.customerName || "").toLowerCase().includes(q) ||
+      (o.customerAddress || "").toLowerCase().includes(q) ||
+      o.status.toLowerCase().includes(q) ||
+      statusLabel.toLowerCase().includes(q)
+    );
+  });
 
   // Cart total calculator
   const cartSubtotal = cart.reduce((sum, item) => {
@@ -465,232 +484,361 @@ export default function Orders() {
           Active Invoices & Logs ({orders.length})
         </h2>
 
-        {orders.map((o) => (
-          <div
-            key={o.id}
-            className="bg-white border border-slate-200/60 p-6 rounded-2xl shadow-xs hover:shadow-md transition-all duration-300"
-          >
-            {/* Header info */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5 border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-700">
-                  <Receipt size={20} />
-                </div>
-                <div>
-                  <div className="font-extrabold text-sm text-slate-800 tracking-tight">
-                    Invoice #{o.id.slice(0, 8)}
-                  </div>
-                  <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium mt-0.5">
-                    <Calendar size={11} />
-                    {new Date(o.createdAt).toLocaleString()}
-                  </div>
-                </div>
-              </div>
+        {/* Search Panel */}
+        <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm mb-6 flex items-center gap-4">
+          <div className="relative flex-1">
+            <Search
+              size={16}
+              className="absolute left-3.5 top-3.5 text-slate-400"
+            />
+            <input
+              type="text"
+              placeholder="Search orders by invoice ID, customer name or status..."
+              className="w-full border border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/10 rounded-xl pl-10 pr-4 py-2.5 text-sm transition-all focus:outline-none text-slate-800"
+              value={ordersSearchQuery}
+              onChange={(e) => setOrdersSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
 
-              <div className="flex items-center gap-2">
-                <span
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${statusColor[o.status] || "bg-slate-50"}`}
-                >
-                  {statusIcons[o.status]}
-                  {statusThaiLabels[o.status] || o.status}
-                </span>
-              </div>
-            </div>
+        {/* Catalog Table */}
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Invoice Info
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Shipping Target
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Total Items
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Grand Total
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {filteredOrders.map((o) => {
+                  const totalQty = o.items.reduce((sum, item) => sum + item.quantity, 0);
+                  const isExpanded = expandedOrderId === o.id;
 
-            {/* Stepper Timeline Tracker (For active non-cancelled stages) */}
-            {o.status !== "rejected" && (
-              <div className="mb-6 max-w-xl mx-auto px-4">
-                <div className="relative flex justify-between items-center w-full">
-                  {/* Background Progress Bar */}
-                  <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-slate-100 rounded-full z-0"></div>
-
-                  {/* Colored active fill line */}
-                  <div
-                    className="absolute left-1 top-1/2 translate-y-[-12px] h-1 bg-indigo-500 rounded-full z-0 transition-all duration-500"
-                    style={{
-                      width: `${(getStatusStepIndex(o.status) / 2) * 100}%`,
-                    }}
-                  ></div>
-
-                  {/* Stepper points */}
-                  {["pending", "ordering", "completed"].map((step, idx) => {
-                    const stepIdx = getStatusStepIndex(o.status);
-                    const isCompleted = idx <= stepIdx;
-                    const isActive = idx === stepIdx;
-
-                    return (
-                      <div
-                        key={step}
-                        className="relative z-10 flex flex-col items-center"
+                  return (
+                    <React.Fragment key={o.id}>
+                      <tr
+                        className="hover:bg-slate-50/70 transition-colors cursor-pointer"
+                        onClick={() => setExpandedOrderId(isExpanded ? null : o.id)}
                       >
-                        <div
-                          className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all duration-300
-                            ${
-                              isCompleted
-                                ? "bg-primary border-primary text-white shadow-md shadow-primary/25"
-                                : "bg-white border-slate-200 text-slate-400"
-                            }
-                            ${isActive ? "scale-120 ring-4 ring-primary/10" : ""}`}
-                        >
-                          {isCompleted ? <Check size={10} /> : idx + 1}
-                        </div>
-                        <span
-                          className={`text-[10px] font-bold mt-1.5 ${isCompleted ? "text-slate-700" : "text-slate-400"}`}
-                        >
-                          {statusThaiLabels[step]}
+                        {/* Invoice Info */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-indigo-50 text-primary flex items-center justify-center">
+                              <Receipt size={18} />
+                            </div>
+                            <div>
+                              <div className="font-semibold text-slate-800 text-sm">
+                                Invoice #{o.id.slice(0, 8)}
+                              </div>
+                              <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium mt-0.5">
+                                <Calendar size={11} />
+                                {new Date(o.createdAt).toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Shipping Target */}
+                        <td className="px-6 py-4">
+                          <div>
+                            <div className="font-semibold text-slate-800 text-sm">
+                              {o.customerName || "N/A"}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-medium max-w-[200px] truncate">
+                              {o.customerAddress || "No shipping address provided."}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Total Items */}
+                        <td className="px-6 py-4 font-semibold text-slate-800 text-sm">
+                          {totalQty} units
+                        </td>
+
+                        {/* Grand Total */}
+                        <td className="px-6 py-4 font-bold text-slate-850 text-sm">
+                          ${o.totalAmount.toFixed(2)}
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${statusColor[o.status] || "bg-slate-50"}`}
+                          >
+                            {statusIcons[o.status]}
+                            {statusThaiLabels[o.status] || o.status}
+                          </span>
+                        </td>
+
+                        {/* Action Buttons */}
+                        <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => setExpandedOrderId(isExpanded ? null : o.id)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all flex items-center gap-1 ml-auto"
+                          >
+                            {isExpanded ? "Collapse" : "View"}
+                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* Expandable Row for Detail Card */}
+                      {isExpanded && (
+                        <tr className="bg-slate-50/40">
+                          <td colSpan={6} className="px-6 py-5 border-b border-slate-100">
+                            <div className="bg-white border border-slate-200/80 p-6 rounded-2xl shadow-xs transition-all duration-300">
+                              {/* Header info */}
+                              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5 border-b border-slate-100 pb-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-700">
+                                    <Receipt size={20} />
+                                  </div>
+                                  <div>
+                                    <div className="font-extrabold text-sm text-slate-800 tracking-tight">
+                                      Invoice #{o.id.slice(0, 8)}
+                                    </div>
+                                    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium mt-0.5">
+                                      <Calendar size={11} />
+                                      {new Date(o.createdAt).toLocaleString()}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${statusColor[o.status] || "bg-slate-50"}`}
+                                  >
+                                    {statusIcons[o.status]}
+                                    {statusThaiLabels[o.status] || o.status}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Stepper Timeline Tracker (For active non-cancelled stages) */}
+                              {o.status !== "rejected" && (
+                                <div className="mb-6 max-w-xl mx-auto px-4">
+                                  <div className="relative flex justify-between items-center w-full">
+                                    {/* Background Progress Bar */}
+                                    <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-slate-100 rounded-full z-0"></div>
+
+                                    {/* Colored active fill line */}
+                                    <div
+                                      className="absolute left-1 top-1/2 translate-y-[-12px] h-1 bg-indigo-500 rounded-full z-0 transition-all duration-500"
+                                      style={{
+                                        width: `${(getStatusStepIndex(o.status) / 2) * 100}%`,
+                                      }}
+                                    ></div>
+
+                                    {/* Stepper points */}
+                                    {["pending", "ordering", "completed"].map((step, idx) => {
+                                      const stepIdx = getStatusStepIndex(o.status);
+                                      const isCompleted = idx <= stepIdx;
+                                      const isActive = idx === stepIdx;
+
+                                      return (
+                                        <div
+                                          key={step}
+                                          className="relative z-10 flex flex-col items-center"
+                                        >
+                                          <div
+                                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all duration-300
+                                              ${
+                                                isCompleted
+                                                  ? "bg-primary border-primary text-white shadow-md shadow-primary/25"
+                                                  : "bg-white border-slate-200 text-slate-400"
+                                              }
+                                              ${isActive ? "scale-120 ring-4 ring-primary/10" : ""}`}
+                                          >
+                                            {isCompleted ? <Check size={10} /> : idx + 1}
+                                          </div>
+                                          <span
+                                            className={`text-[10px] font-bold mt-1.5 ${isCompleted ? "text-slate-700" : "text-slate-400"}`}
+                                          >
+                                            {statusThaiLabels[step]}
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Split layout for manifest and shipping info */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                {/* Item lists */}
+                                <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100/80 space-y-2.5">
+                                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                                    Itemized Manifest
+                                  </span>
+                                  {o.items.map((item, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="flex justify-between items-center text-xs text-slate-600 font-medium"
+                                    >
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <Tag size={12} className="text-slate-400 shrink-0" />
+                                        <span className="truncate max-w-[120px] sm:max-w-none">
+                                          {item.productName}
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 px-1.5 py-0.5 rounded-md bg-white border border-slate-100 font-semibold font-mono">
+                                          x{item.quantity}
+                                        </span>
+                                        {item.returnedQuantity > 0 && (
+                                          <span className="text-[9px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-md border border-amber-100/60 font-semibold">
+                                            Returned: {item.returnedQuantity}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-slate-800 font-semibold">
+                                        ${(item.unitPrice * item.quantity).toFixed(2)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {/* Shipping Details */}
+                                <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100/80 space-y-2.5 text-xs text-slate-600">
+                                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                    <Truck size={12} className="text-slate-400" />
+                                    Shipping Destination
+                                  </span>
+                                  <div className="font-extrabold text-slate-800 flex items-center gap-1.5">
+                                    <Users size={12} className="text-slate-400" />
+                                    {o.customerName || "N/A"}
+                                  </div>
+                                  <div className="flex items-start gap-1.5 mt-1 leading-relaxed">
+                                    <MapPin
+                                      size={12}
+                                      className="text-slate-400 mt-0.5 shrink-0"
+                                    />
+                                    <span>
+                                      {o.customerAddress || "No shipping address provided."}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Action Bar */}
+                              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-slate-200 pt-3.5 mt-3.5">
+                                <div className="flex flex-wrap gap-2">
+                                  {user?.role !== "Customer" && o.status === "pending" && (
+                                    <>
+                                      <button
+                                        onClick={() => handleUpdateStatus(o.id, "ordering")}
+                                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors flex items-center gap-1 border border-blue-100"
+                                      >
+                                        <Truck size={12} />
+                                        Ship Order
+                                      </button>
+                                      <button
+                                        onClick={() => handleUpdateStatus(o.id, "rejected")}
+                                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors flex items-center gap-1 border border-rose-100"
+                                      >
+                                        <X size={12} />
+                                        Cancel Order
+                                      </button>
+                                    </>
+                                  )}
+                                  {user?.role !== "Customer" && o.status === "ordering" && (
+                                    <>
+                                      <button
+                                        onClick={() => handleUpdateStatus(o.id, "completed")}
+                                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors flex items-center gap-1 border border-emerald-100"
+                                      >
+                                        <CheckCircle2 size={12} />
+                                        Complete Order
+                                      </button>
+                                      <button
+                                        onClick={() => handleUpdateStatus(o.id, "rejected")}
+                                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors flex items-center gap-1 border border-rose-100"
+                                      >
+                                        <X size={12} />
+                                        Cancel Order
+                                      </button>
+                                    </>
+                                  )}
+                                  {o.status === "completed" && (
+                                    <button
+                                      onClick={() => handlePrintInvoice(o.id)}
+                                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors flex items-center gap-1 border border-indigo-100"
+                                    >
+                                      <Receipt size={12} />
+                                      Print Invoice
+                                    </button>
+                                  )}
+                                  {user?.role !== "Customer" &&
+                                    (o.status === "ordering" || o.status === "completed") && (
+                                      <button
+                                        onClick={() => {
+                                          setClaimOrder(o);
+                                          setClaimQuantities(
+                                            o.items.reduce(
+                                              (acc, item) => ({ ...acc, [item.productId]: 0 }),
+                                              {},
+                                            ),
+                                          );
+                                          setShowClaimModal(true);
+                                        }}
+                                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors flex items-center gap-1 border border-amber-100"
+                                      >
+                                        <AlertCircle size={12} />
+                                        Claim Items (Returns)
+                                      </button>
+                                    )}
+                                </div>
+
+                                <div className="font-bold text-sm text-slate-800 flex items-center gap-1.5 ml-auto">
+                                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                                    Grand Total:
+                                  </span>
+                                  <span className="text-base text-slate-900 font-black">
+                                    ${o.totalAmount.toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+
+                {filteredOrders.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <AlertCircle size={28} className="text-slate-300 animate-pulse" />
+                        <span className="text-sm font-semibold">No orders found</span>
+                        <span className="text-xs text-slate-400">
+                          Launch checkout by clicking 'New Order' above.
                         </span>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Split layout for manifest and shipping info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              {/* Item lists */}
-              <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100/80 space-y-2.5">
-                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                  Itemized Manifest
-                </span>
-                {o.items.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="flex justify-between items-center text-xs text-slate-600 font-medium"
-                  >
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <Tag size={12} className="text-slate-400 shrink-0" />
-                      <span className="truncate max-w-[120px] sm:max-w-none">
-                        {item.productName}
-                      </span>
-                      <span className="text-[10px] text-slate-400 px-1.5 py-0.5 rounded-md bg-white border border-slate-100 font-semibold font-mono">
-                        x{item.quantity}
-                      </span>
-                      {item.returnedQuantity > 0 && (
-                        <span className="text-[9px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-md border border-amber-100/60 font-semibold">
-                          Returned: {item.returnedQuantity}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-slate-800 font-semibold">
-                      ${(item.unitPrice * item.quantity).toFixed(2)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Shipping Details */}
-              <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100/80 space-y-2.5 text-xs text-slate-600">
-                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                  <Truck size={12} className="text-slate-400" />
-                  Shipping Destination
-                </span>
-                <div className="font-extrabold text-slate-800 flex items-center gap-1.5">
-                  <Users size={12} className="text-slate-400" />
-                  {o.customerName || "N/A"}
-                </div>
-                <div className="flex items-start gap-1.5 mt-1 leading-relaxed">
-                  <MapPin
-                    size={12}
-                    className="text-slate-400 mt-0.5 shrink-0"
-                  />
-                  <span>
-                    {o.customerAddress || "No shipping address provided."}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-slate-200 pt-3.5 mt-3.5">
-              <div className="flex flex-wrap gap-2">
-                {user?.role !== "Customer" && o.status === "pending" && (
-                  <>
-                    <button
-                      onClick={() => handleUpdateStatus(o.id, "ordering")}
-                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors flex items-center gap-1 border border-blue-100"
-                    >
-                      <Truck size={12} />
-                      Ship Order
-                    </button>
-                    <button
-                      onClick={() => handleUpdateStatus(o.id, "rejected")}
-                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors flex items-center gap-1 border border-rose-100"
-                    >
-                      <X size={12} />
-                      Cancel Order
-                    </button>
-                  </>
+                    </td>
+                  </tr>
                 )}
-                {user?.role !== "Customer" && o.status === "ordering" && (
-                  <>
-                    <button
-                      onClick={() => handleUpdateStatus(o.id, "completed")}
-                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors flex items-center gap-1 border border-emerald-100"
-                    >
-                      <CheckCircle2 size={12} />
-                      Complete Order
-                    </button>
-                    <button
-                      onClick={() => handleUpdateStatus(o.id, "rejected")}
-                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors flex items-center gap-1 border border-rose-100"
-                    >
-                      <X size={12} />
-                      Cancel Order
-                    </button>
-                  </>
-                )}
-                {o.status === "completed" && (
-                  <button
-                    onClick={() => handlePrintInvoice(o.id)}
-                    className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors flex items-center gap-1 border border-indigo-100"
-                  >
-                    <Receipt size={12} />
-                    Print Invoice
-                  </button>
-                )}
-                {user?.role !== "Customer" &&
-                  (o.status === "ordering" || o.status === "completed") && (
-                    <button
-                      onClick={() => {
-                        setClaimOrder(o);
-                        setClaimQuantities(
-                          o.items.reduce(
-                            (acc, item) => ({ ...acc, [item.productId]: 0 }),
-                            {},
-                          ),
-                        );
-                        setShowClaimModal(true);
-                      }}
-                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors flex items-center gap-1 border border-amber-100"
-                    >
-                      <AlertCircle size={12} />
-                      Claim Items (Returns)
-                    </button>
-                  )}
-              </div>
-
-              <div className="font-bold text-sm text-slate-800 flex items-center gap-1.5 ml-auto">
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-                  Grand Total:
-                </span>
-                <span className="text-base text-slate-900 font-black">
-                  ${o.totalAmount.toFixed(2)}
-                </span>
-              </div>
-            </div>
+              </tbody>
+            </table>
           </div>
-        ))}
-
-        {orders.length === 0 && (
-          <div className="bg-white border border-slate-100 rounded-2xl py-12 text-center text-slate-400 flex flex-col items-center gap-2">
-            <ShoppingBag size={28} className="text-slate-300" />
-            <span className="text-sm font-semibold">No orders in pipeline</span>
-            <span className="text-xs text-slate-400">
-              Launch checkout by clicking 'New Order' above.
-            </span>
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Claim Items Return Modal */}
