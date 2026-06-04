@@ -12,9 +12,14 @@ import (
 	"gorm.io/gorm"
 )
 
+type StockPublisher interface {
+	PublishStockDeduct(msg config.StockDeductMessage) error
+	PublishStockReturn(msg config.StockDeductMessage) error
+}
+
 type OrderHandler struct {
 	DB       *gorm.DB
-	RabbitMQ *config.RabbitMQ
+	RabbitMQ StockPublisher
 }
 
 type CreateOrderRequest struct {
