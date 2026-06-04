@@ -16,13 +16,28 @@ public class AuthService(IUnitOfWork unitOfWork, IJwtService jwtService) : IAuth
         if (existingUser != null)
             return ApiResponse<AuthResponse>.Fail("Email already registered");
 
+        Guid? customerId = null;
+        string role = "User";
+        Customer? customer = null;
+
+        if (request.CustomerId.HasValue)
+        {
+            customer = await unitOfWork.Customers.GetByIdAsync(request.CustomerId.Value);
+            if (customer == null)
+                return ApiResponse<AuthResponse>.Fail("Invalid Customer ID");
+            customerId = request.CustomerId.Value;
+            role = "Customer";
+        }
+
         var refreshToken = jwtService.GenerateRefreshToken();
         var user = new User
         {
             Email = request.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             FullName = request.FullName,
-            Role = "User",
+            Role = role,
+            CustomerId = customerId,
+            Customer = customer,
             RefreshToken = refreshToken,
             RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7)
         };
@@ -31,7 +46,7 @@ public class AuthService(IUnitOfWork unitOfWork, IJwtService jwtService) : IAuth
         await unitOfWork.CompleteAsync();
 
         var token = jwtService.GenerateToken(user);
-        var response = new AuthResponse(token, refreshToken, new UserDto(user.Id, user.Email, user.FullName, user.Role));
+        var response = new AuthResponse(token, refreshToken, new UserDto(user.Id, user.Email, user.FullName, user.Role, user.CustomerId, user.Customer?.Name));
         return ApiResponse<AuthResponse>.Ok(response);
     }
 
@@ -49,7 +64,7 @@ public class AuthService(IUnitOfWork unitOfWork, IJwtService jwtService) : IAuth
         unitOfWork.Users.Update(user);
         await unitOfWork.CompleteAsync();
 
-        var response = new AuthResponse(token, refreshToken, new UserDto(user.Id, user.Email, user.FullName, user.Role));
+        var response = new AuthResponse(token, refreshToken, new UserDto(user.Id, user.Email, user.FullName, user.Role, user.CustomerId, user.Customer?.Name));
         return ApiResponse<AuthResponse>.Ok(response);
     }
 
@@ -75,7 +90,7 @@ public class AuthService(IUnitOfWork unitOfWork, IJwtService jwtService) : IAuth
         unitOfWork.Users.Update(user);
         await unitOfWork.CompleteAsync();
 
-        var response = new AuthResponse(newAccessToken, newRefreshToken, new UserDto(user.Id, user.Email, user.FullName, user.Role));
+        var response = new AuthResponse(newAccessToken, newRefreshToken, new UserDto(user.Id, user.Email, user.FullName, user.Role, user.CustomerId, user.Customer?.Name));
         return ApiResponse<AuthResponse>.Ok(response);
     }
 
@@ -84,6 +99,6 @@ public class AuthService(IUnitOfWork unitOfWork, IJwtService jwtService) : IAuth
         var user = await unitOfWork.Users.GetByIdAsync(userId);
         if (user == null) return ApiResponse<UserDto>.Fail("User not found");
 
-        return ApiResponse<UserDto>.Ok(new UserDto(user.Id, user.Email, user.FullName, user.Role));
+        return ApiResponse<UserDto>.Ok(new UserDto(user.Id, user.Email, user.FullName, user.Role, user.CustomerId, user.Customer?.Name));
     }
 }

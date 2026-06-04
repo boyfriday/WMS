@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS "Users" (
     "Role" VARCHAR(50) NOT NULL DEFAULT 'User',
     "CreatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     "RefreshToken" TEXT,
-    "RefreshTokenExpiryTime" TIMESTAMPTZ
+    "RefreshTokenExpiryTime" TIMESTAMPTZ,
+    "CustomerId" UUID REFERENCES "Customers" ("Id") ON DELETE SET NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "IX_Users_Email" ON "Users" ("Email");
 
@@ -71,12 +72,13 @@ GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO wms;
 GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO wms;
 
 -- Insert Mock Users (Passwords are hashed "password123" via BCrypt)
-INSERT INTO "Users" ("Id", "Email", "PasswordHash", "FullName", "Role", "CreatedAt")
+INSERT INTO "Users" ("Id", "Email", "PasswordHash", "FullName", "Role", "CustomerId", "CreatedAt")
 VALUES 
-('f0000000-0000-0000-0000-000000000000', 'admin@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'System Administrator', 'Admin', NOW()),
-('f1111111-1111-1111-1111-111111111111', 'operator@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Warehouse Operator', 'Operator', NOW()),
-('f2222222-2222-2222-2222-222222222222', 'warehouse@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Warehouse Controller', 'Warehouse', NOW())
-ON CONFLICT ("Email") DO NOTHING;
+('f0000000-0000-0000-0000-000000000000', 'admin@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'System Administrator', 'Admin', NULL, NOW()),
+('f1111111-1111-1111-1111-111111111111', 'operator@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Warehouse Operator', 'Operator', NULL, NOW()),
+('f2222222-2222-2222-2222-222222222222', 'warehouse@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Warehouse Controller', 'Warehouse', NULL, NOW()),
+('f3333333-3333-3333-3333-333333333333', 'customer@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Customer Account', 'Customer', '99999999-9999-9999-9999-999999999999', NOW())
+ON CONFLICT ("Email") DO UPDATE SET "Role" = EXCLUDED."Role", "CustomerId" = EXCLUDED."CustomerId";
 
 -- Insert Mock Categories
 INSERT INTO "Categories" ("Id", "Name", "Description")

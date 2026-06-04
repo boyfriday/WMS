@@ -60,8 +60,23 @@ type CustomerResponse struct {
 // @Success      200  {object}  map[string]interface{}
 // @Router       /orders [get]
 func (h *OrderHandler) GetOrders(c fiber.Ctx) error {
+	roleVal := c.Locals("role")
+	role := ""
+	if roleVal != nil {
+		role = roleVal.(string)
+	}
 	var orders []models.Order
-	if err := h.DB.Preload("Items").Order("created_at desc").Find(&orders).Error; err != nil {
+	query := h.DB.Preload("Items").Order("created_at desc")
+
+	if role == "Customer" {
+		customerIDVal := c.Locals("customerId")
+		if customerIDVal == nil {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"success": false, "message": "unauthorized customer"})
+		}
+		query = query.Where("customer_id = ?", customerIDVal)
+	}
+
+	if err := query.Find(&orders).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": err.Error()})
 	}
 
@@ -86,6 +101,18 @@ func (h *OrderHandler) GetOrder(c fiber.Ctx) error {
 	var order models.Order
 	if err := h.DB.Where("id = ?", orderID).Preload("Items").First(&order).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": false, "message": "order not found"})
+	}
+
+	roleVal := c.Locals("role")
+	role := ""
+	if roleVal != nil {
+		role = roleVal.(string)
+	}
+	if role == "Customer" {
+		customerIDVal := c.Locals("customerId")
+		if customerIDVal == nil || order.CustomerID.String() != customerIDVal.(string) {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"success": false, "message": "forbidden: access to this order is restricted"})
+		}
 	}
 
 	return c.JSON(fiber.Map{"success": true, "data": order})
@@ -115,6 +142,19 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 
 	if len(req.Items) == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "items required"})
+	}
+
+	roleVal := c.Locals("role")
+	role := ""
+	if roleVal != nil {
+		role = roleVal.(string)
+	}
+	if role == "Customer" {
+		customerIDVal := c.Locals("customerId")
+		if customerIDVal == nil {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"success": false, "message": "unauthorized customer"})
+		}
+		req.CustomerID = customerIDVal.(string)
 	}
 
 	token := c.Get("Authorization")

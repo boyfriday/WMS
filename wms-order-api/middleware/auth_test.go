@@ -82,6 +82,40 @@ func TestJWTMiddleware_ValidToken(t *testing.T) {
 	}
 }
 
+func TestJWTMiddleware_CustomerToken(t *testing.T) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"nameid":     "user-customer",
+		"email":      "cust@test.com",
+		"role":       "Customer",
+		"customerId": "99999999-9999-9999-9999-999999999999",
+		"exp":        time.Now().Add(time.Hour).Unix(),
+	})
+	tokenString, _ := token.SignedString([]byte(config.JWTSecret()))
+
+	app := fiber.New()
+	app.Use(JWTMiddleware())
+	app.Get("/test", func(c fiber.Ctx) error {
+		userId := c.Locals("userId").(string)
+		role := c.Locals("role").(string)
+		customerId := c.Locals("customerId").(string)
+		if userId != "user-customer" || role != "Customer" || customerId != "99999999-9999-9999-9999-999999999999" {
+			return c.Status(500).SendString("claims mismatch")
+		}
+		return c.SendString("ok")
+	})
+
+	req := httptest.NewRequest("GET", "/test", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("Failed to test app: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected 200 OK, got %d", resp.StatusCode)
+	}
+}
+
 func TestRequireRoles(t *testing.T) {
 	tests := []struct {
 		name           string

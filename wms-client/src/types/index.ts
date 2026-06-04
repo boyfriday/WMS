@@ -2,7 +2,9 @@ export interface User {
   id: string;
   email: string;
   fullName: string;
-  role: 'Admin' | 'Operator' | 'Warehouse' | 'User';
+  role: 'Admin' | 'Operator' | 'Warehouse' | 'User' | 'Customer';
+  customerId?: string;
+  customerName?: string;
 }
 
 export interface Category {

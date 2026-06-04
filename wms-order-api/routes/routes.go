@@ -13,11 +13,10 @@ func SetupRoutes(app *fiber.App, db *gorm.DB, rabbitmq *config.RabbitMQ) {
 
 	api := app.Group("/")
 	api.Use(middleware.JWTMiddleware())
-	api.Use(middleware.RequireRoles("Admin", "Operator"))
 
-	api.Get("orders", orderHandler.GetOrders)
-	api.Get("orders/:id", orderHandler.GetOrder)
-	api.Post("orders", orderHandler.CreateOrder)
-	api.Put("orders/:id/status", orderHandler.UpdateOrderStatus)
-	api.Post("orders/:id/claim", orderHandler.ClaimOrderItems)
+	api.Get("orders", orderHandler.GetOrders, middleware.RequireRoles("Admin", "Operator", "Customer"))
+	api.Get("orders/:id", orderHandler.GetOrder, middleware.RequireRoles("Admin", "Operator", "Customer"))
+	api.Post("orders", orderHandler.CreateOrder, middleware.RequireRoles("Admin", "Operator", "Customer"))
+	api.Put("orders/:id/status", orderHandler.UpdateOrderStatus, middleware.RequireRoles("Admin", "Operator"))
+	api.Post("orders/:id/claim", orderHandler.ClaimOrderItems, middleware.RequireRoles("Admin", "Operator"))
 }

@@ -60,17 +60,17 @@ export default function Navbar() {
                   <Layers size={17} />
                   <span className="hidden md:inline">Categories</span>
                 </Link>
+                {(user.role === 'Admin' || user.role === 'Operator' || user.role === 'Customer') && (
+                  <Link to="/orders" className={navLinkClass('/orders')}>
+                    <ShoppingBag size={17} />
+                    <span className="hidden md:inline">Orders</span>
+                  </Link>
+                )}
                 {(user.role === 'Admin' || user.role === 'Operator') && (
-                  <>
-                    <Link to="/orders" className={navLinkClass('/orders')}>
-                      <ShoppingBag size={17} />
-                      <span className="hidden md:inline">Orders</span>
-                    </Link>
-                    <Link to="/customers" className={navLinkClass('/customers')}>
-                      <Users size={17} />
-                      <span className="hidden md:inline">Customers</span>
-                    </Link>
-                  </>
+                  <Link to="/customers" className={navLinkClass('/customers')}>
+                    <Users size={17} />
+                    <span className="hidden md:inline">Customers</span>
+                  </Link>
                 )}
                 {user.role === 'Admin' && (
                   <Link to="/admin" className={navLinkClass('/admin')}>

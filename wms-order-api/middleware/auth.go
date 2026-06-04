@@ -36,6 +36,9 @@ func JWTMiddleware() fiber.Handler {
 		c.Locals("userId", claims["nameid"])
 		c.Locals("email", claims["email"])
 		c.Locals("role", claims["role"])
+		if customerId, exists := claims["customerId"]; exists {
+			c.Locals("customerId", customerId)
+		}
 		return c.Next()
 	}
 }

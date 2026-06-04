@@ -15,6 +15,7 @@ public class AuthServiceTests
 {
     private readonly Mock<IUnitOfWork> _mockUow;
     private readonly Mock<IUserRepository> _mockUserRepo;
+    private readonly Mock<ICustomerRepository> _mockCustomerRepo;
     private readonly Mock<IJwtService> _mockJwtService;
     private readonly AuthService _service;
 
@@ -22,8 +23,10 @@ public class AuthServiceTests
     {
         _mockUow = new Mock<IUnitOfWork>();
         _mockUserRepo = new Mock<IUserRepository>();
+        _mockCustomerRepo = new Mock<ICustomerRepository>();
         _mockJwtService = new Mock<IJwtService>();
         _mockUow.Setup(u => u.Users).Returns(_mockUserRepo.Object);
+        _mockUow.Setup(u => u.Customers).Returns(_mockCustomerRepo.Object);
         _service = new AuthService(_mockUow.Object, _mockJwtService.Object);
     }
 
@@ -63,6 +66,31 @@ public class AuthServiceTests
         Assert.Equal("test@test.com", result.Data.User.Email);
         _mockUserRepo.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Once);
         _mockUow.Verify(u => u.CompleteAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_WhenCustomerRoleRequested_LinksCustomer()
+    {
+        // Arrange
+        var customerId = Guid.NewGuid();
+        var customer = new Customer { Id = customerId, Name = "Acme Corp" };
+        var request = new RegisterRequest("cust@test.com", "password", "Cust User", customerId);
+        _mockUserRepo.Setup(r => r.GetByEmailAsync(request.Email)).ReturnsAsync((User?)null);
+        _mockCustomerRepo.Setup(r => r.GetByIdAsync(customerId)).ReturnsAsync(customer);
+        _mockJwtService.Setup(j => j.GenerateRefreshToken()).Returns("refresh-token-123");
+        _mockJwtService.Setup(j => j.GenerateToken(It.IsAny<User>())).Returns("jwt-token-123");
+        _mockUserRepo.Setup(r => r.AddAsync(It.IsAny<User>())).Returns(Task.CompletedTask);
+        _mockUow.Setup(u => u.CompleteAsync()).ReturnsAsync(1);
+
+        // Act
+        var result = await _service.RegisterAsync(request);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal("Customer", result.Data.User.Role);
+        Assert.Equal(customerId, result.Data.User.CustomerId);
+        Assert.Equal("Acme Corp", result.Data.User.CustomerName);
+        _mockUserRepo.Verify(r => r.AddAsync(It.Is<User>(u => u.Role == "Customer" && u.CustomerId == customerId)), Times.Once);
     }
 
     [Fact]

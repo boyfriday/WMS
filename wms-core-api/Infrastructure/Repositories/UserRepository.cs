@@ -12,8 +12,13 @@ public class UserRepository : Repository<User>, IUserRepository
     {
     }
 
+    public override async Task<User?> GetByIdAsync(Guid id)
+    {
+        return await Context.Users.Include(u => u.Customer).FirstOrDefaultAsync(u => u.Id == id);
+    }
+
     public async Task<User?> GetByEmailAsync(string email)
     {
-        return await Context.Users.FirstOrDefaultAsync(u => u.Email == email);
+        return await Context.Users.Include(u => u.Customer).FirstOrDefaultAsync(u => u.Email == email);
     }
 }

@@ -87,4 +87,22 @@ describe('Navbar', () => {
     expect(screen.getByText('Customers')).toBeInTheDocument();
     expect(screen.getAllByText('Admin')[0]).toBeInTheDocument();
   });
+
+  it('renders Dashboard and Orders for Customer role, but hides other management tabs', () => {
+    vi.mocked(useAuthStore).mockReturnValue({
+      user: { fullName: 'Customer User', role: 'Customer' },
+      logout: vi.fn(),
+    } as any);
+
+    render(
+      <MemoryRouter>
+        <Navbar />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Orders')).toBeInTheDocument();
+    expect(screen.queryByText('Customers')).not.toBeInTheDocument();
+    expect(screen.queryByText('Admin')).not.toBeInTheDocument();
+  });
 });

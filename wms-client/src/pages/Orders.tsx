@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { orderService } from '../services/orderService';
 import { productService } from '../services/productService';
 import { customerService } from '../services/customerService';
+import { useAuthStore } from '../store/authStore';
 import type { Order, Product, Customer } from '../types';
 import {
   ShoppingBag,
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react';
 
 export default function Orders() {
+  const { user } = useAuthStore();
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -77,16 +79,27 @@ export default function Orders() {
   };
 
   const fetchData = async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      const [oRes, pRes, cRes] = await Promise.all([
-        orderService.getOrders(),
-        productService.getProducts(),
-        customerService.getCustomers(),
-      ]);
-      setOrders(oRes.data.data || []);
-      setProducts((pRes.data.data || []).filter(p => p.stock > 0));
-      setCustomers(cRes.data.data || []);
+      if (user.role === 'Customer') {
+        const [oRes, pRes] = await Promise.all([
+          orderService.getOrders(),
+          productService.getProducts(),
+        ]);
+        setOrders(oRes.data.data || []);
+        setProducts((pRes.data.data || []).filter(p => p.stock > 0));
+        setSelectedCustomerId(user.customerId || '');
+      } else {
+        const [oRes, pRes, cRes] = await Promise.all([
+          orderService.getOrders(),
+          productService.getProducts(),
+          customerService.getCustomers(),
+        ]);
+        setOrders(oRes.data.data || []);
+        setProducts((pRes.data.data || []).filter(p => p.stock > 0));
+        setCustomers(cRes.data.data || []);
+      }
     } catch (err) {
       console.error('Error loading order data:', err);
     } finally {
@@ -96,7 +109,7 @@ export default function Orders() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [user]);
 
   const addToCart = (productId: string) => {
     const p = products.find(x => x.id === productId);
@@ -327,19 +340,25 @@ export default function Orders() {
                       <Users size={12} className="text-slate-400" />
                       Shipping Target Customer
                     </label>
-                    <select
-                      value={selectedCustomerId}
-                      onChange={e => setSelectedCustomerId(e.target.value)}
-                      className="w-full bg-white border border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3 py-2 text-xs focus:outline-none transition-all text-slate-800 font-semibold"
-                      required
-                    >
-                      <option value="">-- Choose Shipping Target --</option>
-                      {customers.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
+                    {user?.role === 'Customer' ? (
+                      <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-bold">
+                        {user.customerName || 'Your Linked Account'}
+                      </div>
+                    ) : (
+                      <select
+                        value={selectedCustomerId}
+                        onChange={e => setSelectedCustomerId(e.target.value)}
+                        className="w-full bg-white border border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3 py-2 text-xs focus:outline-none transition-all text-slate-800 font-semibold"
+                        required
+                      >
+                        <option value="">-- Choose Shipping Target --</option>
+                        {customers.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
 
                   <div className="flex justify-between text-xs text-slate-500 font-medium pt-2 border-t border-dashed border-slate-200">
@@ -489,7 +508,7 @@ export default function Orders() {
             {/* Action Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-slate-200 pt-3.5 mt-3.5">
               <div className="flex flex-wrap gap-2">
-                {o.status === 'pending' && (
+                {user?.role !== 'Customer' && o.status === 'pending' && (
                   <>
                     <button
                       onClick={() => handleUpdateStatus(o.id, 'ordering')}
@@ -507,7 +526,7 @@ export default function Orders() {
                     </button>
                   </>
                 )}
-                {o.status === 'ordering' && (
+                {user?.role !== 'Customer' && o.status === 'ordering' && (
                   <>
                     <button
                       onClick={() => handleUpdateStatus(o.id, 'completed')}
@@ -534,7 +553,7 @@ export default function Orders() {
                     Print Invoice
                   </button>
                 )}
-                {(o.status === 'ordering' || o.status === 'completed') && (
+                {user?.role !== 'Customer' && (o.status === 'ordering' || o.status === 'completed') && (
                   <button
                     onClick={() => {
                       setClaimOrder(o);

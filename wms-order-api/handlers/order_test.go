@@ -155,3 +155,78 @@ func TestOrderItemBeforeCreate(t *testing.T) {
 		t.Error("BeforeCreate failed to generate UUID")
 	}
 }
+
+func TestGetOrders_Customer(t *testing.T) {
+	db := setupTestDB(t)
+	handler := &OrderHandler{
+		DB:       db,
+		RabbitMQ: &mockPublisher{},
+	}
+
+	app := fiber.New()
+	app.Get("/orders", func(c fiber.Ctx) error {
+		c.Locals("role", "Customer")
+		c.Locals("customerId", "33333333-3333-3333-3333-333333333333")
+		return handler.GetOrders(c)
+	})
+
+	req := httptest.NewRequest("GET", "/orders", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("Failed to test app: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+}
+
+func TestGetOrder_Customer_Forbidden(t *testing.T) {
+	db := setupTestDB(t)
+	handler := &OrderHandler{
+		DB:       db,
+		RabbitMQ: &mockPublisher{},
+	}
+
+	app := fiber.New()
+	app.Get("/orders/:id", func(c fiber.Ctx) error {
+		c.Locals("role", "Customer")
+		c.Locals("customerId", "wrong-customer-id-uuid") // Mismatch with mockCustomerID
+		return handler.GetOrder(c)
+	})
+
+	req := httptest.NewRequest("GET", "/orders/11111111-1111-1111-1111-111111111111", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("Failed to test app: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusForbidden {
+		t.Errorf("Expected status 403, got %d", resp.StatusCode)
+	}
+}
+
+func TestGetOrder_Customer_Authorized(t *testing.T) {
+	db := setupTestDB(t)
+	handler := &OrderHandler{
+		DB:       db,
+		RabbitMQ: &mockPublisher{},
+	}
+
+	app := fiber.New()
+	app.Get("/orders/:id", func(c fiber.Ctx) error {
+		c.Locals("role", "Customer")
+		c.Locals("customerId", "33333333-3333-3333-3333-333333333333") // Matches mockCustomerID
+		return handler.GetOrder(c)
+	})
+
+	req := httptest.NewRequest("GET", "/orders/11111111-1111-1111-1111-111111111111", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("Failed to test app: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+}
