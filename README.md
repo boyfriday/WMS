@@ -58,7 +58,7 @@ docker-compose up --build
 # 1. รัน PostgreSQL Container
 docker run -d \
   --name wms-postgres-local \
-  -p 5432:5432 \
+  -p 5433:5432 \
   -e POSTGRES_USER=wms \
   -e POSTGRES_PASSWORD=wms123 \
   -e POSTGRES_DB=wms_core \
@@ -66,7 +66,7 @@ docker run -d \
 
 # สำหรับการเชื่อมต่อผ่านเครื่องมือภายนอก (เช่น pgAdmin, DBeaver) จากนอก Docker:
 # - Host: localhost (หรือ 127.0.0.1)
-# - Port: 5432
+# - Port: 5433
 # - Maintenance Database: wms_core
 # - Username: wms
 # - Password: wms123
@@ -97,7 +97,7 @@ docker exec -i wms-postgres-local psql -U wms -d wms_core < migrate_customer_rol
 ```bash
 cd wms-core-api
 dotnet restore
-dotnet run
+ASPNETCORE_ENVIRONMENT=Development dotnet run
 ```
 
 _API จะรันอยู่ที่ http://localhost:8080 (Swagger: http://localhost:8080/swagger)_
@@ -111,7 +111,7 @@ cd wms-order-api
 go mod tidy
 
 # รันโดยตั้งค่า environment variable สำหรับ local host
-CORE_API_URL=http://localhost:8080 go run main.go
+DB_PORT=5433 CORE_API_URL=http://localhost:8080 go run main.go
 ```
 
 _API จะรันอยู่ที่ http://localhost:3000 (Swagger: http://localhost:3000/swagger)_
