@@ -25,7 +25,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS "Categories" (
     "Id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "Name" VARCHAR(255) NOT NULL,
-    "Description" TEXT
+    "Description" TEXT,
+    "IsDeleted" BOOLEAN NOT NULL DEFAULT FALSE
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "IX_Categories_Name" ON "Categories" ("Name");
 
@@ -38,6 +39,7 @@ CREATE TABLE IF NOT EXISTS "Products" (
     "Stock" INT NOT NULL DEFAULT 0,
     "CategoryId" UUID NOT NULL,
     "CreatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "IsDeleted" BOOLEAN NOT NULL DEFAULT FALSE,
     CONSTRAINT fk_category FOREIGN KEY ("CategoryId") REFERENCES "Categories" ("Id") ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS "IX_Products_CategoryId" ON "Products" ("CategoryId");

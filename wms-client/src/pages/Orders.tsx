@@ -92,7 +92,7 @@ export default function Orders() {
           productService.getProducts(),
         ]);
         setOrders(oRes.data.data || []);
-        setProducts((pRes.data.data || []).filter(p => p.stock > 0));
+        setProducts((pRes.data.data || []).filter(p => p.stock > 0 && !p.isDeleted && !p.category?.isDeleted));
         setSelectedCustomerId(user.customerId || '');
       } else {
         const [oRes, pRes, cRes] = await Promise.all([
@@ -101,7 +101,7 @@ export default function Orders() {
           customerService.getCustomers(),
         ]);
         setOrders(oRes.data.data || []);
-        setProducts((pRes.data.data || []).filter(p => p.stock > 0));
+        setProducts((pRes.data.data || []).filter(p => p.stock > 0 && !p.isDeleted && !p.category?.isDeleted));
         setCustomers(cRes.data.data || []);
       }
     } catch (err: any) {

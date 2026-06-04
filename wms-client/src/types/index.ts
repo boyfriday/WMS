@@ -11,6 +11,7 @@ export interface Category {
   id: string;
   name: string;
   description?: string;
+  isDeleted: boolean;
 }
 
 export interface Product {
@@ -21,6 +22,7 @@ export interface Product {
   stock: number;
   categoryId: string;
   category?: Category;
+  isDeleted: boolean;
 }
 
 export interface OrderItem {

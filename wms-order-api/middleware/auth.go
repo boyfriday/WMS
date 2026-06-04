@@ -33,9 +33,24 @@ func JWTMiddleware() fiber.Handler {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "invalid claims"})
 		}
 
-		c.Locals("userId", claims["nameid"])
-		c.Locals("email", claims["email"])
-		c.Locals("role", claims["role"])
+		userId := claims["nameid"]
+		if userId == nil {
+			userId = claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"]
+		}
+		c.Locals("userId", userId)
+
+		email := claims["email"]
+		if email == nil {
+			email = claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"]
+		}
+		c.Locals("email", email)
+
+		role := claims["role"]
+		if role == nil {
+			role = claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]
+		}
+		c.Locals("role", role)
+
 		if customerId, exists := claims["customerId"]; exists {
 			c.Locals("customerId", customerId)
 		}

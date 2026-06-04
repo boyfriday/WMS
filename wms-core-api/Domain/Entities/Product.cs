@@ -11,5 +11,6 @@ public class Product
     public int Stock { get; set; }
     public Guid CategoryId { get; set; }
     public Category Category { get; set; } = null!;
+    public bool IsDeleted { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

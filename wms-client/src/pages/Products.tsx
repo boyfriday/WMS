@@ -26,6 +26,7 @@ export default function Products() {
     price: 0,
     stock: 0,
     categoryId: "",
+    isDeleted: false,
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -88,7 +89,7 @@ export default function Products() {
         await productService.createProduct(form);
         toast.success("Product created successfully!");
       }
-      setForm({ name: "", price: 0, stock: 0, categoryId: "" });
+      setForm({ name: "", price: 0, stock: 0, categoryId: "", isDeleted: false });
       setEditingId(null);
       setShowForm(false);
       fetchData();
@@ -156,7 +157,7 @@ export default function Products() {
           onClick={() => {
             setShowForm(!showForm);
             setEditingId(null);
-            setForm({ name: "", price: 0, stock: 0, categoryId: "" });
+            setForm({ name: "", price: 0, stock: 0, categoryId: "", isDeleted: false });
           }}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition-all duration-200 hover:-translate-y-0.5
             ${
@@ -210,7 +211,7 @@ export default function Products() {
                   required
                 >
                   <option value="">Select Category</option>
-                  {categories.map((c) => (
+                  {categories.filter(c => !c.isDeleted || c.id === form.categoryId).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
@@ -252,12 +253,31 @@ export default function Products() {
                   required
                 />
               </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Status
+                </label>
+                <select
+                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3.5 py-2.5 text-sm transition-all focus:outline-none text-slate-800"
+                  value={form.isDeleted ? "deleted" : "active"}
+                  onChange={(e) =>
+                    setForm({ ...form, isDeleted: e.target.value === "deleted" })
+                  }
+                >
+                  <option value="active">Active</option>
+                  <option value="deleted">Deleted (Hidden on other pages)</option>
+                </select>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false);
+                  setForm({ name: "", price: 0, stock: 0, categoryId: "", isDeleted: false });
+                }}
                 className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
               >
                 Cancel
@@ -300,7 +320,7 @@ export default function Products() {
             onChange={(e) => setSelectedCategoryFilter(e.target.value)}
           >
             <option value="">All Categories</option>
-            {categories.map((c) => (
+            {categories.filter(c => !c.isDeleted).map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
@@ -345,8 +365,13 @@ export default function Products() {
                         <Boxes size={18} />
                       </div>
                       <div>
-                        <div className="font-semibold text-slate-800 text-sm">
+                        <div className="font-semibold text-slate-800 text-sm flex items-center gap-2">
                           {p.name}
+                          {p.isDeleted && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-100/50">
+                              Deleted
+                            </span>
+                          )}
                         </div>
                         <div className="text-[10px] text-slate-400 font-medium font-mono">
                           ID: #{p.id.slice(0, 8)}
@@ -357,8 +382,9 @@ export default function Products() {
 
                   {/* Category */}
                   <td className="px-6 py-4">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${p.category?.isDeleted ? 'bg-rose-50 text-rose-700 border border-rose-100/50' : 'bg-slate-100 text-slate-700'}`}>
                       {p.category?.name || "Uncategorized"}
+                      {p.category?.isDeleted && " (Deleted)"}
                     </span>
                   </td>
 

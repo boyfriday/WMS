@@ -16,7 +16,7 @@ import {
 export default function Categories() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState<Partial<Category>>({ name: '', description: '' });
+  const [form, setForm] = useState<Partial<Category>>({ name: '', description: '', isDeleted: false });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,7 +48,7 @@ export default function Categories() {
         await categoryService.createCategory(form);
         toast.success('Category created successfully!');
       }
-      setForm({ name: '', description: '' });
+      setForm({ name: '', description: '', isDeleted: false });
       setEditingId(null);
       setShowForm(false);
       fetchCategories();
@@ -120,7 +120,7 @@ export default function Categories() {
           onClick={() => {
             setShowForm(!showForm);
             setEditingId(null);
-            setForm({ name: '', description: '' });
+            setForm({ name: '', description: '', isDeleted: false });
           }}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition-all duration-200 hover:-translate-y-0.5
             ${showForm
@@ -142,7 +142,7 @@ export default function Categories() {
           </h3>
           
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Category Name</label>
                 <input
@@ -165,6 +165,18 @@ export default function Categories() {
                   onChange={e => setForm({ ...form, description: e.target.value })}
                 />
               </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Status</label>
+                <select
+                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3.5 py-2.5 text-sm transition-all focus:outline-none text-slate-800"
+                  value={form.isDeleted ? 'deleted' : 'active'}
+                  onChange={e => setForm({ ...form, isDeleted: e.target.value === 'deleted' })}
+                >
+                  <option value="active">Active</option>
+                  <option value="deleted">Deleted (Hidden on other pages)</option>
+                </select>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
@@ -173,7 +185,7 @@ export default function Categories() {
                 onClick={() => {
                   setShowForm(false);
                   setEditingId(null);
-                  setForm({ name: '', description: '' });
+                  setForm({ name: '', description: '', isDeleted: false });
                 }}
                 className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
               >
@@ -234,7 +246,14 @@ export default function Categories() {
                         <Bookmark size={18} />
                       </div>
                       <div>
-                        <div className="font-semibold text-slate-800 text-sm">{c.name}</div>
+                        <div className="font-semibold text-slate-800 text-sm flex items-center gap-2">
+                          {c.name}
+                          {c.isDeleted && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-100/50">
+                              Deleted
+                            </span>
+                          )}
+                        </div>
                         <div className="text-[10px] text-slate-400 font-medium font-mono">ID: #{c.id.slice(0, 8)}</div>
                       </div>
                     </div>

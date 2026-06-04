@@ -16,7 +16,8 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
         var products = await unitOfWork.Products.GetAllWithCategoryAsync();
         var dtos = products.Select(p => new ProductDto(
             p.Id, p.Name, p.Description, p.Price, p.Stock, p.CategoryId,
-            p.Category == null ? null : new CategoryDto(p.Category.Id, p.Category.Name, p.Category.Description)
+            p.Category == null ? null : new CategoryDto(p.Category.Id, p.Category.Name, p.Category.Description, p.Category.IsDeleted),
+            p.IsDeleted
         )).ToList();
         return ApiResponse<List<ProductDto>>.Ok(dtos);
     }
@@ -28,7 +29,8 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
 
         var dto = new ProductDto(
             product.Id, product.Name, product.Description, product.Price, product.Stock, product.CategoryId,
-            product.Category == null ? null : new CategoryDto(product.Category.Id, product.Category.Name, product.Category.Description)
+            product.Category == null ? null : new CategoryDto(product.Category.Id, product.Category.Name, product.Category.Description, product.Category.IsDeleted),
+            product.IsDeleted
         );
         return ApiResponse<ProductDto>.Ok(dto);
     }
@@ -41,7 +43,8 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
             Description = request.Description,
             Price = request.Price,
             Stock = request.Stock,
-            CategoryId = request.CategoryId
+            CategoryId = request.CategoryId,
+            IsDeleted = request.IsDeleted
         };
 
         await unitOfWork.Products.AddAsync(product);
@@ -51,7 +54,8 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
         var productWithCategory = await unitOfWork.Products.GetByIdWithCategoryAsync(product.Id);
         var dto = new ProductDto(
             productWithCategory!.Id, productWithCategory.Name, productWithCategory.Description, productWithCategory.Price, productWithCategory.Stock, productWithCategory.CategoryId,
-            productWithCategory.Category == null ? null : new CategoryDto(productWithCategory.Category.Id, productWithCategory.Category.Name, productWithCategory.Category.Description)
+            productWithCategory.Category == null ? null : new CategoryDto(productWithCategory.Category.Id, productWithCategory.Category.Name, productWithCategory.Category.Description, productWithCategory.Category.IsDeleted),
+            productWithCategory.IsDeleted
         );
         return ApiResponse<ProductDto>.Ok(dto);
     }
@@ -66,6 +70,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
         product.Price = request.Price;
         product.Stock = request.Stock;
         product.CategoryId = request.CategoryId;
+        product.IsDeleted = request.IsDeleted;
 
         unitOfWork.Products.Update(product);
         await unitOfWork.CompleteAsync();
@@ -73,7 +78,8 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
         var productWithCategory = await unitOfWork.Products.GetByIdWithCategoryAsync(product.Id);
         var dto = new ProductDto(
             productWithCategory!.Id, productWithCategory.Name, productWithCategory.Description, productWithCategory.Price, productWithCategory.Stock, productWithCategory.CategoryId,
-            productWithCategory.Category == null ? null : new CategoryDto(productWithCategory.Category.Id, productWithCategory.Category.Name, productWithCategory.Category.Description)
+            productWithCategory.Category == null ? null : new CategoryDto(productWithCategory.Category.Id, productWithCategory.Category.Name, productWithCategory.Category.Description, productWithCategory.Category.IsDeleted),
+            productWithCategory.IsDeleted
         );
         return ApiResponse<ProductDto>.Ok(dto);
     }

@@ -90,6 +90,18 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+
+    try
+    {
+        db.Database.ExecuteSqlRaw(@"
+            ALTER TABLE ""Categories"" ADD COLUMN IF NOT EXISTS ""IsDeleted"" BOOLEAN NOT NULL DEFAULT FALSE;
+            ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""IsDeleted"" BOOLEAN NOT NULL DEFAULT FALSE;
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Database schema auto-patch error: {ex.Message}");
+    }
 }
 
 if (app.Environment.IsDevelopment())

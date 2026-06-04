@@ -33,10 +33,11 @@ type CreateOrderRequest struct {
 type ProductResponse struct {
 	Success bool `json:"success"`
 	Data    struct {
-		ID    string  `json:"id"`
-		Name  string  `json:"name"`
-		Price float64 `json:"price"`
-		Stock int     `json:"stock"`
+		ID        string  `json:"id"`
+		Name      string  `json:"name"`
+		Price     float64 `json:"price"`
+		Stock     int     `json:"stock"`
+		IsDeleted bool    `json:"isDeleted"`
 	} `json:"data"`
 }
 
@@ -210,6 +211,12 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 		productResp.Body.Close()
 
 		product := productData.Data
+		if product.IsDeleted {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"success": false,
+				"message": fmt.Sprintf("cannot order product %s: product is deleted", product.Name),
+			})
+		}
 		if product.Stock < item.Quantity {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"success": false,

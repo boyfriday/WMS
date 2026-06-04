@@ -46,8 +46,8 @@ export default function Dashboard() {
           orderService.getOrders(),
         ]);
 
-        const products = prodRes.data.data || [];
-        const categories = catRes.data.data || [];
+        const products = (prodRes.data.data || []).filter(p => !p.isDeleted);
+        const categories = (catRes.data.data || []).filter(c => !c.isDeleted);
         const orders = ordRes.data.data || [];
 
         const lowStock = products.filter(p => p.stock < 10).length;
