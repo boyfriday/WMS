@@ -27,7 +27,9 @@ CREATE TABLE IF NOT EXISTS "Users" (
     "PasswordHash" VARCHAR(255) NOT NULL,
     "FullName" VARCHAR(255) NOT NULL,
     "Role" VARCHAR(50) NOT NULL DEFAULT 'User',
-    "CreatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    "CreatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "RefreshToken" TEXT,
+    "RefreshTokenExpiryTime" TIMESTAMPTZ
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "IX_Users_Email" ON "Users" ("Email");
 

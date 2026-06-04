@@ -28,6 +28,14 @@ public class AuthController(IAuthService authService) : ControllerBase
         return Ok(res);
     }
 
+    [HttpPost("refresh")]
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> Refresh(RefreshTokenRequest req)
+    {
+        var res = await authService.RefreshTokenAsync(req);
+        if (!res.Success) return BadRequest(res);
+        return Ok(res);
+    }
+
     [Authorize]
     [HttpGet("me")]
     public async Task<ActionResult<ApiResponse<UserDto>>> Me()

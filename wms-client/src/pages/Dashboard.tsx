@@ -33,8 +33,9 @@ export default function Dashboard() {
       try {
         if (!user) {
           const token = localStorage.getItem('token')!;
+          const refreshToken = localStorage.getItem('refreshToken')!;
           const meRes = await authService.me();
-          setAuth(token, meRes.data.data);
+          setAuth(token, refreshToken, meRes.data.data);
         }
 
         // Fetch dashboard statistics in parallel

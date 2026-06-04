@@ -19,9 +19,10 @@ function App() {
   useEffect(() => {
     init();
     const token = localStorage.getItem('token');
-    if (token) {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (token && refreshToken) {
       authService.me()
-        .then((res) => setAuth(token, res.data.data))
+        .then((res) => setAuth(token, refreshToken, res.data.data))
         .catch(() => logout());
     }
   }, [init, setAuth, logout]);

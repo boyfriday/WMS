@@ -18,8 +18,8 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await authService.login({ email, password });
-      const { token, user } = res.data.data;
-      setAuth(token, user);
+      const { token, refreshToken, user } = res.data.data;
+      setAuth(token, refreshToken, user);
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Invalid email or password. Please try again.');

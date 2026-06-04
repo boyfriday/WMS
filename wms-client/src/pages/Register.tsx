@@ -19,8 +19,8 @@ export default function Register() {
     setLoading(true);
     try {
       const res = await authService.register({ email, password, fullName });
-      const { token, user } = res.data.data;
-      setAuth(token, user);
+      const { token, refreshToken, user } = res.data.data;
+      setAuth(token, refreshToken, user);
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed. The email address might be taken.');

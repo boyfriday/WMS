@@ -8,5 +8,6 @@ public interface IAuthService
 {
     Task<ApiResponse<AuthResponse>> RegisterAsync(RegisterRequest request);
     Task<ApiResponse<AuthResponse>> LoginAsync(LoginRequest request);
+    Task<ApiResponse<AuthResponse>> RefreshTokenAsync(RefreshTokenRequest request);
     Task<ApiResponse<UserDto>> GetMeAsync(Guid userId);
 }
