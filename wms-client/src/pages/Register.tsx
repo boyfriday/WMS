@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import { authService } from '../services/authService';
 import { useAuthStore } from '../store/authStore';
 import { User, Mail, Lock, UserPlus, AlertCircle, Loader2 } from 'lucide-react';
@@ -21,9 +22,12 @@ export default function Register() {
       const res = await authService.register({ email, password, fullName });
       const { token, refreshToken, user } = res.data.data;
       setAuth(token, refreshToken, user);
+      toast.success('Registration successful! Welcome to the system.');
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed. The email address might be taken.');
+      const errMsg = err.response?.data?.message || 'Registration failed. The email address might be taken.';
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }

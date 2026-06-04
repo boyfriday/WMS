@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import { authService } from '../services/authService';
 import { useAuthStore } from '../store/authStore';
 import { Mail, Lock, LogIn, AlertCircle, Loader2 } from 'lucide-react';
@@ -20,9 +21,12 @@ export default function Login() {
       const res = await authService.login({ email, password });
       const { token, refreshToken, user } = res.data.data;
       setAuth(token, refreshToken, user);
+      toast.success(`Welcome back, ${user.fullName}!`);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid email or password. Please try again.');
+      const errMsg = err.response?.data?.message || 'Invalid email or password. Please try again.';
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }

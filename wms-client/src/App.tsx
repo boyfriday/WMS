@@ -11,6 +11,7 @@ import Orders from './pages/Orders';
 import Customers from './pages/Customers';
 import Admin from './pages/Admin';
 import PrintOrder from './pages/PrintOrder';
+import { Toaster } from 'sonner';
 import { useAuthStore } from './store/authStore';
 import { authService } from './services/authService';
 
@@ -31,6 +32,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
+      <Toaster position="top-right" richColors closeButton />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
