@@ -215,10 +215,10 @@ export default function Orders() {
   };
 
   const statusThaiLabels: Record<string, string> = {
-    pending: "รอขนส่ง",
-    ordering: "กำลังขนส่ง",
-    completed: "สำเร็จ",
-    rejected: "ถูกยกเลิก",
+    pending: "Pending",
+    ordering: "Ordering",
+    completed: "Completed",
+    rejected: "Rejected",
   };
 
   // Get status stage step index for tracking line
@@ -529,14 +529,19 @@ export default function Orders() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {filteredOrders.map((o) => {
-                  const totalQty = o.items.reduce((sum, item) => sum + item.quantity, 0);
+                  const totalQty = o.items.reduce(
+                    (sum, item) => sum + item.quantity,
+                    0,
+                  );
                   const isExpanded = expandedOrderId === o.id;
 
                   return (
                     <React.Fragment key={o.id}>
                       <tr
                         className="hover:bg-slate-50/70 transition-colors cursor-pointer"
-                        onClick={() => setExpandedOrderId(isExpanded ? null : o.id)}
+                        onClick={() =>
+                          setExpandedOrderId(isExpanded ? null : o.id)
+                        }
                       >
                         {/* Invoice Info */}
                         <td className="px-6 py-4">
@@ -563,7 +568,8 @@ export default function Orders() {
                               {o.customerName || "N/A"}
                             </div>
                             <div className="text-[10px] text-slate-400 font-medium max-w-[200px] truncate">
-                              {o.customerAddress || "No shipping address provided."}
+                              {o.customerAddress ||
+                                "No shipping address provided."}
                             </div>
                           </div>
                         </td>
@@ -589,13 +595,22 @@ export default function Orders() {
                         </td>
 
                         {/* Action Buttons */}
-                        <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                        <td
+                          className="px-6 py-4 text-right"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <button
-                            onClick={() => setExpandedOrderId(isExpanded ? null : o.id)}
+                            onClick={() =>
+                              setExpandedOrderId(isExpanded ? null : o.id)
+                            }
                             className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all flex items-center gap-1 ml-auto"
                           >
                             {isExpanded ? "Collapse" : "View"}
-                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            {isExpanded ? (
+                              <ChevronUp size={14} />
+                            ) : (
+                              <ChevronDown size={14} />
+                            )}
                           </button>
                         </td>
                       </tr>
@@ -603,7 +618,10 @@ export default function Orders() {
                       {/* Expandable Row for Detail Card */}
                       {isExpanded && (
                         <tr className="bg-slate-50/40">
-                          <td colSpan={6} className="px-6 py-5 border-b border-slate-100">
+                          <td
+                            colSpan={6}
+                            className="px-6 py-5 border-b border-slate-100"
+                          >
                             <div className="bg-white border border-slate-200/80 p-6 rounded-2xl shadow-xs transition-all duration-300">
                               {/* Header info */}
                               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5 border-b border-slate-100 pb-4">
@@ -648,35 +666,43 @@ export default function Orders() {
                                     ></div>
 
                                     {/* Stepper points */}
-                                    {["pending", "ordering", "completed"].map((step, idx) => {
-                                      const stepIdx = getStatusStepIndex(o.status);
-                                      const isCompleted = idx <= stepIdx;
-                                      const isActive = idx === stepIdx;
+                                    {["pending", "ordering", "completed"].map(
+                                      (step, idx) => {
+                                        const stepIdx = getStatusStepIndex(
+                                          o.status,
+                                        );
+                                        const isCompleted = idx <= stepIdx;
+                                        const isActive = idx === stepIdx;
 
-                                      return (
-                                        <div
-                                          key={step}
-                                          className="relative z-10 flex flex-col items-center"
-                                        >
+                                        return (
                                           <div
-                                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all duration-300
+                                            key={step}
+                                            className="relative z-10 flex flex-col items-center"
+                                          >
+                                            <div
+                                              className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all duration-300
                                               ${
                                                 isCompleted
                                                   ? "bg-primary border-primary text-white shadow-md shadow-primary/25"
                                                   : "bg-white border-slate-200 text-slate-400"
                                               }
                                               ${isActive ? "scale-120 ring-4 ring-primary/10" : ""}`}
-                                          >
-                                            {isCompleted ? <Check size={10} /> : idx + 1}
+                                            >
+                                              {isCompleted ? (
+                                                <Check size={10} />
+                                              ) : (
+                                                idx + 1
+                                              )}
+                                            </div>
+                                            <span
+                                              className={`text-[10px] font-bold mt-1.5 ${isCompleted ? "text-slate-700" : "text-slate-400"}`}
+                                            >
+                                              {statusThaiLabels[step]}
+                                            </span>
                                           </div>
-                                          <span
-                                            className={`text-[10px] font-bold mt-1.5 ${isCompleted ? "text-slate-700" : "text-slate-400"}`}
-                                          >
-                                            {statusThaiLabels[step]}
-                                          </span>
-                                        </div>
-                                      );
-                                    })}
+                                        );
+                                      },
+                                    )}
                                   </div>
                                 </div>
                               )}
@@ -694,7 +720,10 @@ export default function Orders() {
                                       className="flex justify-between items-center text-xs text-slate-600 font-medium"
                                     >
                                       <div className="flex items-center gap-1.5 flex-wrap">
-                                        <Tag size={12} className="text-slate-400 shrink-0" />
+                                        <Tag
+                                          size={12}
+                                          className="text-slate-400 shrink-0"
+                                        />
                                         <span className="truncate max-w-[120px] sm:max-w-none">
                                           {item.productName}
                                         </span>
@@ -708,7 +737,10 @@ export default function Orders() {
                                         )}
                                       </div>
                                       <span className="text-slate-800 font-semibold">
-                                        ${(item.unitPrice * item.quantity).toFixed(2)}
+                                        $
+                                        {(
+                                          item.unitPrice * item.quantity
+                                        ).toFixed(2)}
                                       </span>
                                     </div>
                                   ))}
@@ -717,11 +749,17 @@ export default function Orders() {
                                 {/* Shipping Details */}
                                 <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100/80 space-y-2.5 text-xs text-slate-600">
                                   <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                                    <Truck size={12} className="text-slate-400" />
+                                    <Truck
+                                      size={12}
+                                      className="text-slate-400"
+                                    />
                                     Shipping Destination
                                   </span>
                                   <div className="font-extrabold text-slate-800 flex items-center gap-1.5">
-                                    <Users size={12} className="text-slate-400" />
+                                    <Users
+                                      size={12}
+                                      className="text-slate-400"
+                                    />
                                     {o.customerName || "N/A"}
                                   </div>
                                   <div className="flex items-start gap-1.5 mt-1 leading-relaxed">
@@ -730,7 +768,8 @@ export default function Orders() {
                                       className="text-slate-400 mt-0.5 shrink-0"
                                     />
                                     <span>
-                                      {o.customerAddress || "No shipping address provided."}
+                                      {o.customerAddress ||
+                                        "No shipping address provided."}
                                     </span>
                                   </div>
                                 </div>
@@ -739,42 +778,55 @@ export default function Orders() {
                               {/* Action Bar */}
                               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-slate-200 pt-3.5 mt-3.5">
                                 <div className="flex flex-wrap gap-2">
-                                  {user?.role !== "Customer" && o.status === "pending" && (
-                                    <>
-                                      <button
-                                        onClick={() => handleUpdateStatus(o.id, "ordering")}
-                                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors flex items-center gap-1 border border-blue-100"
-                                      >
-                                        <Truck size={12} />
-                                        Ship Order
-                                      </button>
-                                      <button
-                                        onClick={() => handleUpdateStatus(o.id, "rejected")}
-                                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors flex items-center gap-1 border border-rose-100"
-                                      >
-                                        <X size={12} />
-                                        Cancel Order
-                                      </button>
-                                    </>
-                                  )}
-                                  {user?.role !== "Customer" && o.status === "ordering" && (
-                                    <>
-                                      <button
-                                        onClick={() => handleUpdateStatus(o.id, "completed")}
-                                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors flex items-center gap-1 border border-emerald-100"
-                                      >
-                                        <CheckCircle2 size={12} />
-                                        Complete Order
-                                      </button>
-                                      <button
-                                        onClick={() => handleUpdateStatus(o.id, "rejected")}
-                                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors flex items-center gap-1 border border-rose-100"
-                                      >
-                                        <X size={12} />
-                                        Cancel Order
-                                      </button>
-                                    </>
-                                  )}
+                                  {user?.role !== "Customer" &&
+                                    o.status === "pending" && (
+                                      <>
+                                        <button
+                                          onClick={() =>
+                                            handleUpdateStatus(o.id, "ordering")
+                                          }
+                                          className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors flex items-center gap-1 border border-blue-100"
+                                        >
+                                          <Truck size={12} />
+                                          Ship Order
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            handleUpdateStatus(o.id, "rejected")
+                                          }
+                                          className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors flex items-center gap-1 border border-rose-100"
+                                        >
+                                          <X size={12} />
+                                          Cancel Order
+                                        </button>
+                                      </>
+                                    )}
+                                  {user?.role !== "Customer" &&
+                                    o.status === "ordering" && (
+                                      <>
+                                        <button
+                                          onClick={() =>
+                                            handleUpdateStatus(
+                                              o.id,
+                                              "completed",
+                                            )
+                                          }
+                                          className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors flex items-center gap-1 border border-emerald-100"
+                                        >
+                                          <CheckCircle2 size={12} />
+                                          Complete Order
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            handleUpdateStatus(o.id, "rejected")
+                                          }
+                                          className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors flex items-center gap-1 border border-rose-100"
+                                        >
+                                          <X size={12} />
+                                          Cancel Order
+                                        </button>
+                                      </>
+                                    )}
                                   {o.status === "completed" && (
                                     <button
                                       onClick={() => handlePrintInvoice(o.id)}
@@ -785,13 +837,17 @@ export default function Orders() {
                                     </button>
                                   )}
                                   {user?.role !== "Customer" &&
-                                    (o.status === "ordering" || o.status === "completed") && (
+                                    (o.status === "ordering" ||
+                                      o.status === "completed") && (
                                       <button
                                         onClick={() => {
                                           setClaimOrder(o);
                                           setClaimQuantities(
                                             o.items.reduce(
-                                              (acc, item) => ({ ...acc, [item.productId]: 0 }),
+                                              (acc, item) => ({
+                                                ...acc,
+                                                [item.productId]: 0,
+                                              }),
                                               {},
                                             ),
                                           );
@@ -824,10 +880,18 @@ export default function Orders() {
 
                 {filteredOrders.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                    <td
+                      colSpan={6}
+                      className="px-6 py-12 text-center text-slate-400"
+                    >
                       <div className="flex flex-col items-center justify-center gap-2">
-                        <AlertCircle size={28} className="text-slate-300 animate-pulse" />
-                        <span className="text-sm font-semibold">No orders found</span>
+                        <AlertCircle
+                          size={28}
+                          className="text-slate-300 animate-pulse"
+                        />
+                        <span className="text-sm font-semibold">
+                          No orders found
+                        </span>
                         <span className="text-xs text-slate-400">
                           Launch checkout by clicking 'New Order' above.
                         </span>

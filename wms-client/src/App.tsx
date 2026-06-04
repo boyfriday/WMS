@@ -14,6 +14,7 @@ import PrintOrder from './pages/PrintOrder';
 import { Toaster } from 'sonner';
 import { useAuthStore } from './store/authStore';
 import { authService } from './services/authService';
+import TokenExpiryMonitor from './components/TokenExpiryMonitor';
 
 function App() {
   const { init, setAuth, logout } = useAuthStore();
@@ -33,6 +34,7 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <Toaster position="top-right" richColors closeButton />
+      <TokenExpiryMonitor />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
