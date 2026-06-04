@@ -31,5 +31,5 @@ func JWTSecret() string {
 }
 
 func CoreAPIURL() string {
-	return getEnv("CORE_API_URL", "http://wms-core-api:8080")
+	return getEnv("CORE_API_URL", "http://localhost:8080")
 }
