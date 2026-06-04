@@ -1,4 +1,6 @@
-namespace WmsCoreApi.DTOs;
+using System;
+
+namespace WmsCoreApi.Application.DTOs;
 
 public record CreateCategoryRequest(string Name, string? Description);
 public record UpdateCategoryRequest(string Name, string? Description);

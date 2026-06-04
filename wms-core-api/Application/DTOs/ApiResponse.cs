@@ -1,4 +1,4 @@
-namespace WmsCoreApi.DTOs;
+namespace WmsCoreApi.Application.DTOs;
 
 public class ApiResponse<T>
 {

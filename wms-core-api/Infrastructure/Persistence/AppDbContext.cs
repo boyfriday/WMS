@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using WmsCoreApi.Models;
+using WmsCoreApi.Domain.Entities;
 
-namespace WmsCoreApi.Data;
+namespace WmsCoreApi.Infrastructure.Persistence;
 
 public class AppDbContext : DbContext
 {

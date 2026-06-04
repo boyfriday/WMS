@@ -1,12 +1,18 @@
+using System;
 using System.Text;
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using WmsCoreApi.Data;
-using WmsCoreApi.DTOs;
+using WmsCoreApi.Application.DTOs;
+using WmsCoreApi.Application.Interfaces;
 
-namespace WmsCoreApi.Services;
+namespace WmsCoreApi.Infrastructure.Messaging;
 
 public class RabbitMQConsumer : BackgroundService
 {
@@ -62,15 +68,10 @@ public class RabbitMQConsumer : BackgroundService
                             message.ProductId, message.Quantity, message.OrderId);
 
                         using var scope = _serviceProvider.CreateScope();
-                        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                        var productService = scope.ServiceProvider.GetRequiredService<IProductService>();
 
-                        var product = await db.Products.FindAsync(Guid.Parse(message.ProductId));
-                        if (product != null)
-                        {
-                            product.Stock = Math.Max(0, product.Stock - message.Quantity);
-                            await db.SaveChangesAsync();
-                            _logger.LogInformation("Stock updated for product {ProductId}: new stock {Stock}", product.Id, product.Stock);
-                        }
+                        await productService.DeductStockAsync(Guid.Parse(message.ProductId), message.Quantity);
+                        _logger.LogInformation("Stock updated successfully for product {ProductId}", message.ProductId);
 
                         channel.BasicAck(ea.DeliveryTag, multiple: false);
                     }

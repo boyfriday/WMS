@@ -1,12 +1,15 @@
+using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using WmsCoreApi.Models;
+using WmsCoreApi.Application.Interfaces;
+using WmsCoreApi.Domain.Entities;
 
-namespace WmsCoreApi.Services;
+namespace WmsCoreApi.Infrastructure.Services;
 
-public class JwtService(IConfiguration configuration)
+public class JwtService(IConfiguration configuration) : IJwtService
 {
     public string GenerateToken(User user)
     {

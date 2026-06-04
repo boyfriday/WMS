@@ -2,8 +2,13 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using WmsCoreApi.Data;
-using WmsCoreApi.Services;
+using WmsCoreApi.Infrastructure.Persistence;
+using WmsCoreApi.Domain.Interfaces;
+using WmsCoreApi.Infrastructure.Repositories;
+using WmsCoreApi.Application.Interfaces;
+using WmsCoreApi.Application.Services;
+using WmsCoreApi.Infrastructure.Services;
+using WmsCoreApi.Infrastructure.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,7 +44,17 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddScoped<JwtService>();
+// Register Clean Architecture / DDD Abstractions & Implementations
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+
 builder.Services.AddHostedService<RabbitMQConsumer>();
 
 var jwtKey = builder.Configuration["Jwt:Key"]!;

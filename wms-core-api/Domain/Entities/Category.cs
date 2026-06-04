@@ -1,4 +1,4 @@
-namespace WmsCoreApi.Models;
+namespace WmsCoreApi.Domain.Entities;
 
 public class Category
 {

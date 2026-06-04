@@ -1,4 +1,6 @@
-namespace WmsCoreApi.Models;
+using System;
+
+namespace WmsCoreApi.Domain.Entities;
 
 public class Product
 {
