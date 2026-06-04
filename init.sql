@@ -100,10 +100,10 @@ ON CONFLICT ("Email") DO NOTHING;
 -- Insert Mock Users (Passwords are hashed "password123" via BCrypt)
 INSERT INTO "Users" ("Id", "Email", "PasswordHash", "FullName", "Role", "CustomerId", "CreatedAt")
 VALUES 
-('f0000000-0000-0000-0000-000000000000', 'admin@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'System Administrator', 'Admin', NULL, NOW()),
-('f1111111-1111-1111-1111-111111111111', 'operator@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Warehouse Operator', 'Operator', NULL, NOW()),
-('f2222222-2222-2222-2222-222222222222', 'warehouse@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Warehouse Controller', 'Warehouse', NULL, NOW()),
-('f3333333-3333-3333-3333-333333333333', 'customer@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Customer Account', 'Customer', '99999999-9999-9999-9999-999999999999', NOW())
+('f0000000-0000-0000-0000-000000000000', 'admin@wms.com', '$2a$10$zGZANI4ET6leMHveXOgwQ.FeeXVxgWTsmjpNJxWhQpsoQ.0gf0x8O', 'System Administrator', 'Admin', NULL, NOW()),
+('f1111111-1111-1111-1111-111111111111', 'operator@wms.com', '$2a$10$zGZANI4ET6leMHveXOgwQ.FeeXVxgWTsmjpNJxWhQpsoQ.0gf0x8O', 'Warehouse Operator', 'Operator', NULL, NOW()),
+('f2222222-2222-2222-2222-222222222222', 'warehouse@wms.com', '$2a$10$zGZANI4ET6leMHveXOgwQ.FeeXVxgWTsmjpNJxWhQpsoQ.0gf0x8O', 'Warehouse Controller', 'Warehouse', NULL, NOW()),
+('f3333333-3333-3333-3333-333333333333', 'customer@wms.com', '$2a$10$zGZANI4ET6leMHveXOgwQ.FeeXVxgWTsmjpNJxWhQpsoQ.0gf0x8O', 'Customer Account', 'Customer', '99999999-9999-9999-9999-999999999999', NOW())
 ON CONFLICT ("Email") DO UPDATE SET "Role" = EXCLUDED."Role", "CustomerId" = EXCLUDED."CustomerId";
 
 
