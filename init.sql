@@ -21,19 +21,6 @@ GRANT ALL PRIVILEGES ON DATABASE wms_order TO wms;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Users Table (Entity Framework PascalCase casing wrapped in double quotes)
-CREATE TABLE IF NOT EXISTS "Users" (
-    "Id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "Email" VARCHAR(255) NOT NULL,
-    "PasswordHash" VARCHAR(255) NOT NULL,
-    "FullName" VARCHAR(255) NOT NULL,
-    "Role" VARCHAR(50) NOT NULL DEFAULT 'User',
-    "CreatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    "RefreshToken" TEXT,
-    "RefreshTokenExpiryTime" TIMESTAMPTZ,
-    "CustomerId" UUID REFERENCES "Customers" ("Id") ON DELETE SET NULL
-);
-CREATE UNIQUE INDEX IF NOT EXISTS "IX_Users_Email" ON "Users" ("Email");
-
 -- Categories Table
 CREATE TABLE IF NOT EXISTS "Categories" (
     "Id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -66,19 +53,24 @@ CREATE TABLE IF NOT EXISTS "Customers" (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "IX_Customers_Email" ON "Customers" ("Email");
 
+-- Users Table (Entity Framework PascalCase casing wrapped in double quotes)
+CREATE TABLE IF NOT EXISTS "Users" (
+    "Id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "Email" VARCHAR(255) NOT NULL,
+    "PasswordHash" VARCHAR(255) NOT NULL,
+    "FullName" VARCHAR(255) NOT NULL,
+    "Role" VARCHAR(50) NOT NULL DEFAULT 'User',
+    "CreatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "RefreshToken" TEXT,
+    "RefreshTokenExpiryTime" TIMESTAMPTZ,
+    "CustomerId" UUID REFERENCES "Customers" ("Id") ON DELETE SET NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "IX_Users_Email" ON "Users" ("Email");
+
 -- Grant permissions for wms_core schema objects to the wms user
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO wms;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO wms;
 GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO wms;
-
--- Insert Mock Users (Passwords are hashed "password123" via BCrypt)
-INSERT INTO "Users" ("Id", "Email", "PasswordHash", "FullName", "Role", "CustomerId", "CreatedAt")
-VALUES 
-('f0000000-0000-0000-0000-000000000000', 'admin@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'System Administrator', 'Admin', NULL, NOW()),
-('f1111111-1111-1111-1111-111111111111', 'operator@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Warehouse Operator', 'Operator', NULL, NOW()),
-('f2222222-2222-2222-2222-222222222222', 'warehouse@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Warehouse Controller', 'Warehouse', NULL, NOW()),
-('f3333333-3333-3333-3333-333333333333', 'customer@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Customer Account', 'Customer', '99999999-9999-9999-9999-999999999999', NOW())
-ON CONFLICT ("Email") DO UPDATE SET "Role" = EXCLUDED."Role", "CustomerId" = EXCLUDED."CustomerId";
 
 -- Insert Mock Categories
 INSERT INTO "Categories" ("Id", "Name", "Description")
@@ -104,6 +96,15 @@ VALUES
 ('88888888-8888-8888-8888-888888888888', 'Global Logistics Ltd', 'info@globallogistics.com', '02-987-6543', '456 Freight Avenue, Port Area, Chonburi 20110', NOW()),
 ('77777777-7777-7777-7777-777777777777', 'Retail Giants Co.', 'support@retailgiants.co.th', '02-555-7890', '789 Shopping Blvd, Retail District, BKK 10330', NOW())
 ON CONFLICT ("Email") DO NOTHING;
+
+-- Insert Mock Users (Passwords are hashed "password123" via BCrypt)
+INSERT INTO "Users" ("Id", "Email", "PasswordHash", "FullName", "Role", "CustomerId", "CreatedAt")
+VALUES 
+('f0000000-0000-0000-0000-000000000000', 'admin@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'System Administrator', 'Admin', NULL, NOW()),
+('f1111111-1111-1111-1111-111111111111', 'operator@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Warehouse Operator', 'Operator', NULL, NOW()),
+('f2222222-2222-2222-2222-222222222222', 'warehouse@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Warehouse Controller', 'Warehouse', NULL, NOW()),
+('f3333333-3333-3333-3333-333333333333', 'customer@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Customer Account', 'Customer', '99999999-9999-9999-9999-999999999999', NOW())
+ON CONFLICT ("Email") DO UPDATE SET "Role" = EXCLUDED."Role", "CustomerId" = EXCLUDED."CustomerId";
 
 
 -- ==========================================
