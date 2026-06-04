@@ -129,12 +129,12 @@ export default function Navbar() {
                 >
                   Sign In
                 </Link>
-                <Link
+                {/* <Link
                   to="/register"
                   className="bg-primary text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-primary-dark shadow-md shadow-primary/10 hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 transition-all duration-200"
                 >
                   Create Account
-                </Link>
+                </Link> */}
               </div>
             )}
           </div>
