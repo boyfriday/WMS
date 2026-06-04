@@ -130,7 +130,7 @@ _Frontend จะรันอยู่ที่ http://localhost:5173_
 
 ## Default Accounts
 
-ระบบได้ทำ seeding บัญชีผู้ใช้เริ่มต้นไว้ 3 roles ในฐานข้อมูลสำหรับการทดสอบ (รหัสผ่านคือ `password123` สำหรับทุกบัญชี):
+ระบบได้ทำ seeding บัญชีผู้ใช้เริ่มต้นไว้ 4 roles ในฐานข้อมูลสำหรับการทดสอบ (รหัสผ่านคือ `password123` สำหรับทุกบัญชี):
 
 - **System Administrator (Admin)**
   - **Email:** `admin@wms.com`
@@ -141,21 +141,25 @@ _Frontend จะรันอยู่ที่ http://localhost:5173_
 - **Warehouse Controller (Warehouse)**
   - **Email:** `warehouse@wms.com`
   - **Permissions:** ตรวจสอบและรับสินค้าเข้าสต็อก (Receive Stock) ดูและจัดการสินค้า/หมวดหมู่สินค้า (ไม่สามารถเข้าถึงหน้าออเดอร์และลูกค้าได้)
+- **Customer User (Customer)**
+  - **Email:** `customer@wms.com` (ผูกกับบริษัท Acme Corporation)
+  - **Permissions:** เข้าถึงระบบสั่งซื้อเพื่อซื้อสินค้าให้ตนเอง และดูประวัติรายการสั่งซื้อของตนเองเท่านั้น (ไม่สามารถเข้าถึงสินค้าในสต็อก, จัดการหมวดหมู่ หรือดูออเดอร์และข้อมูลของลูกค้ารายอื่นได้)
 
 ---
 
 ## Security Role Permissions Matrix
 
-| Feature / Resource        | Action                             | Admin | Operator | Warehouse |
-| :------------------------ | :--------------------------------- | :---: | :------: | :-------: |
-| **Products & Categories** | View                               |  Yes  |   Yes    |    Yes    |
-|                           | Add / Edit / Delete                |  Yes  |   Yes    |    Yes    |
-| **Stock (Inventory)**     | View Stock                         |  Yes  |   Yes    |    Yes    |
-|                           | Receive Stock (รับสินค้าเข้า)      |  Yes  |    No    |    Yes    |
-| **Customers**             | View / Add / Edit                  |  Yes  |   Yes    |    No     |
-|                           | Delete                             |  Yes  |    No    |    No     |
-| **Orders**                | View / Place / Ship / Cancel       |  Yes  |   Yes    |    No     |
-|                           | Claim Returns (คืนสินค้าเข้าสต็อก) |  Yes  |   Yes    |    No     |
+| Feature / Resource        | Action                             | Admin | Operator | Warehouse | Customer |
+| :------------------------ | :--------------------------------- | :---: | :------: | :-------: | :------: |
+| **Products & Categories** | View                               |  Yes  |   Yes    |    Yes    |   Yes    |
+|                           | Add / Edit / Delete                |  Yes  |   Yes    |    Yes    |    No    |
+| **Stock (Inventory)**     | View Stock                         |  Yes  |   Yes    |    Yes    |    No    |
+|                           | Receive Stock (รับสินค้าเข้า)      |  Yes  |    No    |    Yes    |    No    |
+| **Customers**             | View / Add / Edit                  |  Yes  |   Yes    |    No     |    No    |
+|                           | Delete                             |  Yes  |    No    |    No     |    No    |
+| **Orders**                | View / Place                       |  Yes  |   Yes    |    No     | Yes (Own)|
+|                           | Ship / Cancel                      |  Yes  |   Yes    |    No     |    No    |
+|                           | Claim Returns (คืนสินค้าเข้าสต็อก) |  Yes  |   Yes    |    No     |    No    |
 
 ---
 
