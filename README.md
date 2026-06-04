@@ -21,32 +21,36 @@ Distributed Product Management System สำหรับจัดการสิ
 สถาปัตยกรรมของ WMS ถูกออกแบบในลักษณะ **Distributed Microservices** โดยแยกส่วนการทำงานตาม Domain Responsibilities เพื่อความยืดหยุ่นในการขยายระบบ (Scalability) ความทนทานต่อความเสียหาย (Resilience) และการใช้ประสิทธิภาพสูงสุดของแต่ละเทคโนโลยี ดังนี้:
 
 ### 1. เหตุผลด้านการเลือกภาษาและเฟรมเวิร์กในแต่ละส่วน (Domain Segregation)
-*   **wms-core-api (.NET 10 Web API + EF Core)**
-    *   **Enterprise-Grade & Strong Typing:** เหมาะสำหรับการจัดการข้อมูลผู้ใช้ (Auth), แค็ตตาล็อกสินค้า (Catalog) และสต็อกสินค้าคงคลัง (Stock) ซึ่งเป็นระบบแกนหลัก (Core System) ที่ต้องการความถูกต้องและปลอดภัยสูงสุดในการทำธุรกรรม (Transactional Safety)
-    *   **Entity Framework Core & Repository Pattern:** ช่วยให้การจัดการความสัมพันธ์ของข้อมูลที่ซับซ้อน (เช่น ข้อมูลผู้ใช้สัมพันธ์กับสิทธิ์และรายละเอียดลูกค้า) ทำได้อย่างมั่นคง ป้องกันช่องโหว่ความปลอดภัย เช่น SQL Injection ได้อย่างเด็ดขาด ผ่านการคิวรีแบบ Type-Safe
-*   **wms-order-api (Go 1.23 + Fiber v3 + GORM)**
-    *   **High Performance & Low Latency:** การจัดการสถานะออเดอร์ (Order Lifecycle) เป็นจุดที่มีทราฟฟิกเข้ามาหนาแน่นและรวดเร็วที่สุด การเลือกใช้ภาษา Go ที่มีขนาดเล็ก ทำงานได้เร็วระดับ Native และกินทรัพยากรน้อย ช่วยให้รองรับการสั่งซื้อปริมาณมากได้โดยไม่หน่วงระบบ
-    *   **Lightweight Network Stack:** Go Fiber v3 นำเสนอเราติ้งและมิดเดิลแวร์ที่มีประสิทธิภาพสูงและกินทรัพยากรหน่วยความจำต่ำมาก เหมาะสำหรับการทำหน้าที่เป็น I/O-bound service ที่เชื่อมต่อกับระบบคิวและ API ภายนอก
-*   **wms-client (React 19 + TypeScript + Vite + Tailwind CSS)**
-    *   **Vite Developer Experience:** ความสามารถในการทำ Hot Module Replacement (HMR) แบบแทบจะทันที ช่วยลดเวลาในขั้นตอนการพัฒนาลงอย่างมาก
-    *   **Strict Type-Safety:** การแชร์ Interfaces/Types ระหว่าง Frontend และ Backend ทำให้ตรวจจับข้อผิดพลาดในโครงสร้างข้อมูลได้ตั้งแต่ขั้นตอนคอมไพล์ (Compile-time)
-    *   **Zustand for State Management:** เลือกใช้ Zustand แทน Redux เนื่องจากมีขนาดที่เบากว่า ไม่มี Boilerplate code และรองรับการทำ Synchronous State Hydration จาก `localStorage` โดยตรง ช่วยแก้ปัญหาการเกิด Race Condition/Redirect loop ไปยังหน้า Login ขณะเปิดแท็บใหม่ได้ทันที
+
+- **wms-core-api (.NET 10 Web API + EF Core)**
+  - **Enterprise-Grade & Strong Typing:** เหมาะสำหรับการจัดการข้อมูลผู้ใช้ (Auth), แค็ตตาล็อกสินค้า (Catalog) และสต็อกสินค้าคงคลัง (Stock) ซึ่งเป็นระบบแกนหลัก (Core System) ที่ต้องการความถูกต้องและปลอดภัยสูงสุดในการทำธุรกรรม (Transactional Safety)
+  - **Entity Framework Core & Repository Pattern:** ช่วยให้การจัดการความสัมพันธ์ของข้อมูลที่ซับซ้อน (เช่น ข้อมูลผู้ใช้สัมพันธ์กับสิทธิ์และรายละเอียดลูกค้า) ทำได้อย่างมั่นคง ป้องกันช่องโหว่ความปลอดภัย เช่น SQL Injection ได้อย่างเด็ดขาด ผ่านการคิวรีแบบ Type-Safe
+- **wms-order-api (Go 1.23 + Fiber v3 + GORM)**
+  - **High Performance & Low Latency:** การจัดการสถานะออเดอร์ (Order Lifecycle) เป็นจุดที่มีทราฟฟิกเข้ามาหนาแน่นและรวดเร็วที่สุด การเลือกใช้ภาษา Go ที่มีขนาดเล็ก ทำงานได้เร็วระดับ Native และกินทรัพยากรน้อย ช่วยให้รองรับการสั่งซื้อปริมาณมากได้โดยไม่หน่วงระบบ
+  - **Lightweight Network Stack:** Go Fiber v3 นำเสนอเราติ้งและมิดเดิลแวร์ที่มีประสิทธิภาพสูงและกินทรัพยากรหน่วยความจำต่ำมาก เหมาะสำหรับการทำหน้าที่เป็น I/O-bound service ที่เชื่อมต่อกับระบบคิวและ API ภายนอก
+- **wms-client (React 19 + TypeScript + Vite + Tailwind CSS)**
+  - **Vite Developer Experience:** ความสามารถในการทำ Hot Module Replacement (HMR) แบบแทบจะทันที ช่วยลดเวลาในขั้นตอนการพัฒนาลงอย่างมาก
+  - **Strict Type-Safety:** การแชร์ Interfaces/Types ระหว่าง Frontend และ Backend ทำให้ตรวจจับข้อผิดพลาดในโครงสร้างข้อมูลได้ตั้งแต่ขั้นตอนคอมไพล์ (Compile-time)
+  - **Zustand for State Management:** เลือกใช้ Zustand แทน Redux เนื่องจากมีขนาดที่เบากว่า ไม่มี Boilerplate code และรองรับการทำ Synchronous State Hydration จาก `localStorage` โดยตรง ช่วยแก้ปัญหาการเกิด Race Condition/Redirect loop ไปยังหน้า Login ขณะเปิดแท็บใหม่ได้ทันที
 
 ### 2. การแยกฐานข้อมูลอิสระ (Database-per-Service Pattern)
-*   ระบบแยกฐานข้อมูลของ `wms_core` (ข้อมูลสต็อก, ผู้ใช้, ลูกค้า) ออกจาก `wms_order` (ข้อมูลรายการสั่งซื้อและการเคลมสินค้า) อย่างเด็ดขาด
-*   **ประโยชน์:** เพื่อป้องกันการเกิด Database Lock เมื่อมีการเขียน/อ่านออเดอร์ปริมาณมาก และช่วยลดความเกี่ยวพันของโค้ด (Decoupling) หากฐานข้อมูลออเดอร์เกิดปัญหา สต็อกสินค้าและระบบการทำงานของเจ้าหน้าที่ฝ่ายอื่นก็ยังคงรันต่อได้ไม่สะดุด
+
+- ระบบแยกฐานข้อมูลของ `wms_core` (ข้อมูลสต็อก, ผู้ใช้, ลูกค้า) ออกจาก `wms_order` (ข้อมูลรายการสั่งซื้อและการเคลมสินค้า) อย่างเด็ดขาด
+- **ประโยชน์:** เพื่อป้องกันการเกิด Database Lock เมื่อมีการเขียน/อ่านออเดอร์ปริมาณมาก และช่วยลดความเกี่ยวพันของโค้ด (Decoupling) หากฐานข้อมูลออเดอร์เกิดปัญหา สต็อกสินค้าและระบบการทำงานของเจ้าหน้าที่ฝ่ายอื่นก็ยังคงรันต่อได้ไม่สะดุด
 
 ### 3. การสื่อสารแบบ Event-Driven (RabbitMQ + Asynchronous Messaging)
-*   ในการทำคืนของเคลมสินค้า (Claim Items Return) ระบบจะไม่ใช้ HTTP call ไปตัดสต็อกแบบประสานเวลา (Synchronous) แต่จะส่งข้อมูลเคลมเข้าสู่ RabbitMQ Exchange (`wms.direct`) และส่งต่อไปยังคิว `stock.return` โดยให้ Core API คอยดึงไปดำเนินการตัดสต็อกเบื้องหลัง
-*   **ประโยชน์:**
-    *   **High Availability:** หาก Core Service ปิดปรับปรุงชั่วคราว ออเดอร์ก็ยังเคลมได้สำเร็จเนื่องจากคิวจะเก็บข้อความไว้ให้ เมื่อระบบหลักกลับมาออนไลน์ ข้อมูลในคิวจะถูกประมวลผลต่อทันทีโดยไม่มีการสูญหาย
-    *   **Non-Blocking I/O:** การยืนยันออเดอร์ไม่จำเป็นต้องรอให้ระบบตัดสต็อกหลักประมวลผลเสร็จ ช่วยให้เวลาตอบสนอง (Response Time) ของผู้ใช้งานฝั่ง Order รวดเร็วขึ้นมาก
+
+- ในการทำคืนของเคลมสินค้า (Claim Items Return) ระบบจะไม่ใช้ HTTP call ไปตัดสต็อกแบบประสานเวลา (Synchronous) แต่จะส่งข้อมูลเคลมเข้าสู่ RabbitMQ Exchange (`wms.direct`) และส่งต่อไปยังคิว `stock.return` โดยให้ Core API คอยดึงไปดำเนินการตัดสต็อกเบื้องหลัง
+- **ประโยชน์:**
+  - **High Availability:** หาก Core Service ปิดปรับปรุงชั่วคราว ออเดอร์ก็ยังเคลมได้สำเร็จเนื่องจากคิวจะเก็บข้อความไว้ให้ เมื่อระบบหลักกลับมาออนไลน์ ข้อมูลในคิวจะถูกประมวลผลต่อทันทีโดยไม่มีการสูญหาย
+  - **Non-Blocking I/O:** การยืนยันออเดอร์ไม่จำเป็นต้องรอให้ระบบตัดสต็อกหลักประมวลผลเสร็จ ช่วยให้เวลาตอบสนอง (Response Time) ของผู้ใช้งานฝั่ง Order รวดเร็วขึ้นมาก
 
 ### 4. ระบบตรวจสอบโทเค็นแบบเรียลไทม์ข้ามแท็บ (Real-time Token Expiry Monitor)
-*   ระบบตรวจเช็คอายุของ Access Token ด้วย Pure JS parser บนเว็บบราวเซอร์ทุกๆ 1 วินาที โดยไม่ส่งภาระทราฟฟิกไปฝั่ง API
-*   **จุดสำคัญด้านความปลอดภัยและการประสานงานข้ามแท็บ:**
-    *   การดึงค่า token จาก `localStorage` โดยตรงในทุกรอบของ Timer (แทนการใช้ local state ของคอมโพเนนต์) ทำให้กรณีผู้ใช้งานมีหลายแท็บเปิดอยู่ หากมีการกดต่ออายุโทเค็น (Session Extend) จากแท็บใดแท็บหนึ่ง แท็บอื่นๆ จะรับรู้โทเค็นใหม่ที่มีการขยายเวลาออกไปทันที และปิดหน้าต่างแจ้งเตือนโดยอัตโนมัติ ช่วยลดปัญหาความรำคาญใจให้ผู้ใช้
-    *   การล็อกเอาต์อัตโนมัติ (Auto Logout) และส่งกลับไปที่หน้า `/login` ทันทีที่หมดเวลา ช่วยป้องกันผู้ไม่หวังดีสวมสิทธิ์ใช้งานต่อเมื่อผู้ใช้ปล่อยหน้าจอทิ้งไว้
+
+- ระบบตรวจเช็คอายุของ Access Token ด้วย Pure JS parser บนเว็บบราวเซอร์ทุกๆ 1 วินาที โดยไม่ส่งภาระทราฟฟิกไปฝั่ง API
+- **จุดสำคัญด้านความปลอดภัยและการประสานงานข้ามแท็บ:**
+  - การดึงค่า token จาก `localStorage` โดยตรงในทุกรอบของ Timer (แทนการใช้ local state ของคอมโพเนนต์) ทำให้กรณีผู้ใช้งานมีหลายแท็บเปิดอยู่ หากมีการกดต่ออายุโทเค็น (Session Extend) จากแท็บใดแท็บหนึ่ง แท็บอื่นๆ จะรับรู้โทเค็นใหม่ที่มีการขยายเวลาออกไปทันที และปิดหน้าต่างแจ้งเตือนโดยอัตโนมัติ ช่วยลดปัญหาความรำคาญใจให้ผู้ใช้
+  - การล็อกเอาต์อัตโนมัติ (Auto Logout) และส่งกลับไปที่หน้า `/login` ทันทีที่หมดเวลา ช่วยป้องกันผู้ไม่หวังดีสวมสิทธิ์ใช้งานต่อเมื่อผู้ใช้ปล่อยหน้าจอทิ้งไว้
 
 ## Services
 
@@ -61,7 +65,7 @@ Distributed Product Management System สำหรับจัดการสิ
 - Docker & Docker Compose
 - (Optional) Node.js 22+ for local frontend dev
 - (Optional) .NET 10 SDK for local API dev
-- (Optional) Go 1.23+ for local order service dev
+- (Optional) Go 1.26+ for local order service dev
 
 ## Quick Start
 
@@ -181,17 +185,17 @@ _Frontend จะรันอยู่ที่ http://localhost:5173_
 
 ## Security Role Permissions Matrix
 
-| Feature / Resource        | Action                             | Admin | Operator | Warehouse | Customer |
-| :------------------------ | :--------------------------------- | :---: | :------: | :-------: | :------: |
-| **Products & Categories** | View                               |  Yes  |   Yes    |    Yes    |   Yes    |
-|                           | Add / Edit / Delete                |  Yes  |   Yes    |    Yes    |    No    |
-| **Stock (Inventory)**     | View Stock                         |  Yes  |   Yes    |    Yes    |    No    |
-|                           | Receive Stock (รับสินค้าเข้า)      |  Yes  |    No    |    Yes    |    No    |
-| **Customers**             | View / Add / Edit                  |  Yes  |   Yes    |    No     |    No    |
-|                           | Delete                             |  Yes  |    No    |    No     |    No    |
-| **Orders**                | View / Place                       |  Yes  |   Yes    |    No     | Yes (Own)|
-|                           | Ship / Cancel                      |  Yes  |   Yes    |    No     |    No    |
-|                           | Claim Returns (คืนสินค้าเข้าสต็อก) |  Yes  |   Yes    |    No     |    No    |
+| Feature / Resource        | Action                             | Admin | Operator | Warehouse | Customer  |
+| :------------------------ | :--------------------------------- | :---: | :------: | :-------: | :-------: |
+| **Products & Categories** | View                               |  Yes  |   Yes    |    Yes    |    Yes    |
+|                           | Add / Edit / Delete                |  Yes  |   Yes    |    Yes    |    No     |
+| **Stock (Inventory)**     | View Stock                         |  Yes  |   Yes    |    Yes    |    No     |
+|                           | Receive Stock (รับสินค้าเข้า)      |  Yes  |    No    |    Yes    |    No     |
+| **Customers**             | View / Add / Edit                  |  Yes  |   Yes    |    No     |    No     |
+|                           | Delete                             |  Yes  |    No    |    No     |    No     |
+| **Orders**                | View / Place                       |  Yes  |   Yes    |    No     | Yes (Own) |
+|                           | Ship / Cancel                      |  Yes  |   Yes    |    No     |    No     |
+|                           | Claim Returns (คืนสินค้าเข้าสต็อก) |  Yes  |   Yes    |    No     |    No     |
 
 ---
 
