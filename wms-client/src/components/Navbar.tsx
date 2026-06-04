@@ -4,7 +4,6 @@ import {
   Package,
   Layers,
   ShoppingBag,
-  ShieldCheck,
   LogOut,
   LayoutDashboard,
   Users,

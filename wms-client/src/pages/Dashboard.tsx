@@ -14,7 +14,6 @@ import {
   ClipboardList,
   PlusCircle,
   ArrowRight,
-  ShieldCheck,
 } from "lucide-react";
 
 export default function Dashboard() {
