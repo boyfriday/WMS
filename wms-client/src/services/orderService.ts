@@ -2,6 +2,7 @@ import { orderApi } from './api';
 import type { Order, ApiResponse } from '../types';
 
 export interface CreateOrderRequest {
+  customerId: string;
   items: { productId: string; quantity: number }[];
 }
 

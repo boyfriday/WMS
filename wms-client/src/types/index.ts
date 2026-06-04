@@ -31,9 +31,21 @@ export interface OrderItem {
 export interface Order {
   id: string;
   userId: string;
+  customerId: string;
+  customerName: string;
+  customerAddress: string;
   items: OrderItem[];
   totalAmount: number;
   status: 'Pending' | 'Confirmed' | 'Shipped' | 'Delivered' | 'Cancelled';
+  createdAt: string;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
   createdAt: string;
 }
 

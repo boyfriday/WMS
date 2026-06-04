@@ -52,6 +52,17 @@ CREATE TABLE IF NOT EXISTS "Products" (
 );
 CREATE INDEX IF NOT EXISTS "IX_Products_CategoryId" ON "Products" ("CategoryId");
 
+-- Customers Table
+CREATE TABLE IF NOT EXISTS "Customers" (
+    "Id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "Name" VARCHAR(255) NOT NULL,
+    "Email" VARCHAR(255) NOT NULL,
+    "Phone" VARCHAR(50) NOT NULL,
+    "Address" TEXT NOT NULL,
+    "CreatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "IX_Customers_Email" ON "Customers" ("Email");
+
 -- Grant permissions for wms_core schema objects to the wms user
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO wms;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO wms;
@@ -81,6 +92,14 @@ VALUES
 ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'WMS Cotton Hoodie', 'Super cozy branded cotton hoodie.', 35.00, 50, '33333333-3333-3333-3333-333333333333', NOW())
 ON CONFLICT ("Id") DO NOTHING;
 
+-- Insert Mock Customers
+INSERT INTO "Customers" ("Id", "Name", "Email", "Phone", "Address", "CreatedAt")
+VALUES 
+('99999999-9999-9999-9999-999999999999', 'Acme Corporation', 'contact@acme.com', '02-123-4567', '123 Business Rd, Industrial Zone, BKK 10110', NOW()),
+('88888888-8888-8888-8888-888888888888', 'Global Logistics Ltd', 'info@globallogistics.com', '02-987-6543', '456 Freight Avenue, Port Area, Chonburi 20110', NOW()),
+('77777777-7777-7777-7777-777777777777', 'Retail Giants Co.', 'support@retailgiants.co.th', '02-555-7890', '789 Shopping Blvd, Retail District, BKK 10330', NOW())
+ON CONFLICT ("Email") DO NOTHING;
+
 
 -- ==========================================
 -- 3. Schema and Mock Data for wms_order
@@ -91,12 +110,16 @@ ON CONFLICT ("Id") DO NOTHING;
 CREATE TABLE IF NOT EXISTS orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
+    customer_id UUID NOT NULL,
+    customer_name VARCHAR(255) NOT NULL,
+    customer_address TEXT NOT NULL,
     total_amount DECIMAL(18,2) NOT NULL,
     status VARCHAR(20) DEFAULT 'Pending',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders (user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders (customer_id);
 
 -- Order Items Table
 CREATE TABLE IF NOT EXISTS order_items (
@@ -116,9 +139,9 @@ GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO wms;
 GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO wms;
 
 -- Insert Mock Orders
-INSERT INTO orders (id, user_id, total_amount, status, created_at, updated_at)
+INSERT INTO orders (id, user_id, customer_id, customer_name, customer_address, total_amount, status, created_at, updated_at)
 VALUES 
-('e0000000-0000-0000-0000-000000000000', 'f1111111-1111-1111-1111-111111111111', 139.49, 'Confirmed', NOW() - INTERVAL '1 DAY', NOW() - INTERVAL '1 DAY')
+('e0000000-0000-0000-0000-000000000000', 'f1111111-1111-1111-1111-111111111111', '99999999-9999-9999-9999-999999999999', 'Acme Corporation', '123 Business Rd, Industrial Zone, BKK 10110', 139.49, 'Confirmed', NOW() - INTERVAL '1 DAY', NOW() - INTERVAL '1 DAY')
 ON CONFLICT (id) DO NOTHING;
 
 -- Insert Mock Order Items

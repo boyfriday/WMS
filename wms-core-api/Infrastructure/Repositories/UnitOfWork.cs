@@ -15,11 +15,13 @@ public class UnitOfWork : IUnitOfWork
         Users = new UserRepository(_context);
         Products = new ProductRepository(_context);
         Categories = new CategoryRepository(_context);
+        Customers = new CustomerRepository(_context);
     }
 
     public IUserRepository Users { get; }
     public IProductRepository Products { get; }
     public ICategoryRepository Categories { get; }
+    public ICustomerRepository Customers { get; }
 
     public async Task<int> CompleteAsync()
     {

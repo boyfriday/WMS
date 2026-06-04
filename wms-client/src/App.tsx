@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
 import Categories from './pages/Categories';
 import Orders from './pages/Orders';
+import Customers from './pages/Customers';
 import Admin from './pages/Admin';
 import { useAuthStore } from './store/authStore';
 import { authService } from './services/authService';
@@ -35,6 +36,7 @@ function App() {
         <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
         <Route path="/categories" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+        <Route path="/customers" element={<ProtectedRoute requireAdmin><Customers /></ProtectedRoute>} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
     </div>

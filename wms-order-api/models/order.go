@@ -8,13 +8,16 @@ import (
 )
 
 type Order struct {
-	ID          uuid.UUID   `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	UserID      uuid.UUID   `gorm:"type:uuid;not null;index" json:"userId"`
-	TotalAmount float64     `gorm:"type:decimal(18,2);not null" json:"totalAmount"`
-	Status      string      `gorm:"type:varchar(20);default:'Pending'" json:"status"`
-	Items       []OrderItem `gorm:"foreignKey:OrderID" json:"items"`
-	CreatedAt   time.Time   `json:"createdAt"`
-	UpdatedAt   time.Time   `json:"updatedAt"`
+	ID              uuid.UUID   `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	UserID          uuid.UUID   `gorm:"type:uuid;not null;index" json:"userId"`
+	CustomerID      uuid.UUID   `gorm:"type:uuid;not null;index" json:"customerId"`
+	CustomerName    string      `gorm:"type:varchar(255);not null" json:"customerName"`
+	CustomerAddress string      `gorm:"type:text;not null" json:"customerAddress"`
+	TotalAmount     float64     `gorm:"type:decimal(18,2);not null" json:"totalAmount"`
+	Status          string      `gorm:"type:varchar(20);default:'Pending'" json:"status"`
+	Items           []OrderItem `gorm:"foreignKey:OrderID" json:"items"`
+	CreatedAt       time.Time   `json:"createdAt"`
+	UpdatedAt       time.Time   `json:"updatedAt"`
 }
 
 type OrderItem struct {

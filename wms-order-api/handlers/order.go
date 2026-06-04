@@ -18,7 +18,8 @@ type OrderHandler struct {
 }
 
 type CreateOrderRequest struct {
-	Items []struct {
+	CustomerID string `json:"customerId"`
+	Items      []struct {
 		ProductID string `json:"productId"`
 		Quantity  int    `json:"quantity"`
 	} `json:"items"`
@@ -27,10 +28,21 @@ type CreateOrderRequest struct {
 type ProductResponse struct {
 	Success bool `json:"success"`
 	Data    struct {
-		ID      string  `json:"id"`
-		Name    string  `json:"name"`
-		Price   float64 `json:"price"`
-		Stock   int     `json:"stock"`
+		ID    string  `json:"id"`
+		Name  string  `json:"name"`
+		Price float64 `json:"price"`
+		Stock int     `json:"stock"`
+	} `json:"data"`
+}
+
+type CustomerResponse struct {
+	Success bool `json:"success"`
+	Data    struct {
+		ID      string `json:"id"`
+		Name    string `json:"name"`
+		Email   string `json:"email"`
+		Phone   string `json:"phone"`
+		Address string `json:"address"`
 	} `json:"data"`
 }
 
@@ -111,6 +123,30 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 	token := c.Get("Authorization")
 	coreURL := config.CoreAPIURL()
 
+	customerID, err := uuid.Parse(req.CustomerID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "invalid customer id"})
+	}
+
+	// Fetch and validate customer from core API
+	customerReq, _ := http.NewRequest("GET", fmt.Sprintf("%s/customers/%s", coreURL, customerID), nil)
+	customerReq.Header.Set("Authorization", token)
+	customerResp, err := http.DefaultClient.Do(customerReq)
+	if err != nil || customerResp.StatusCode != 200 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "failed to fetch or validate customer"})
+	}
+
+	var customerData CustomerResponse
+	if err := json.NewDecoder(customerResp.Body).Decode(&customerData); err != nil {
+		customerResp.Body.Close()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "failed to decode customer details"})
+	}
+	customerResp.Body.Close()
+
+	if !customerData.Success {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "customer not found in core registry"})
+	}
+
 	var orderItems []models.OrderItem
 	var totalAmount float64
 	orderID := uuid.New()
@@ -164,11 +200,14 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 	}
 
 	order := models.Order{
-		ID:          orderID,
-		UserID:      userID,
-		TotalAmount: totalAmount,
-		Status:      "Pending",
-		Items:       orderItems,
+		ID:              orderID,
+		UserID:          userID,
+		CustomerID:      customerID,
+		CustomerName:    customerData.Data.Name,
+		CustomerAddress: customerData.Data.Address,
+		TotalAmount:     totalAmount,
+		Status:          "Pending",
+		Items:           orderItems,
 	}
 
 	if err := h.DB.Create(&order).Error; err != nil {

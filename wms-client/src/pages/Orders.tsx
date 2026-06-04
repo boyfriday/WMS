@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { orderService } from '../services/orderService';
 import { productService } from '../services/productService';
-import type { Order, Product } from '../types';
+import { customerService } from '../services/customerService';
+import type { Order, Product, Customer } from '../types';
 import {
   ShoppingBag,
   Plus,
@@ -17,11 +18,15 @@ import {
   Hourglass,
   Receipt,
   Tag,
+  Users,
+  MapPin,
 } from 'lucide-react';
 
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [cart, setCart] = useState<{ productId: string; quantity: number }[]>([]);
@@ -32,12 +37,14 @@ export default function Orders() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [oRes, pRes] = await Promise.all([
+      const [oRes, pRes, cRes] = await Promise.all([
         orderService.getOrders(),
         productService.getProducts(),
+        customerService.getCustomers(),
       ]);
       setOrders(oRes.data.data || []);
       setProducts((pRes.data.data || []).filter(p => p.stock > 0));
+      setCustomers(cRes.data.data || []);
     } catch (err) {
       console.error('Error loading order data:', err);
     } finally {
@@ -80,9 +87,11 @@ export default function Orders() {
 
   const handleSubmit = async () => {
     if (cart.length === 0) return alert('Please add items to cart');
+    if (!selectedCustomerId) return alert('Please select a shipping customer');
     try {
-      await orderService.createOrder({ items: cart });
+      await orderService.createOrder({ items: cart, customerId: selectedCustomerId });
       setCart([]);
+      setSelectedCustomerId('');
       setShowForm(false);
       fetchData();
     } catch (err) {
@@ -265,7 +274,28 @@ export default function Orders() {
               {/* Checkout Calculation and Button */}
               {cart.length > 0 && (
                 <div className="border-t border-slate-200/80 mt-5 pt-4 space-y-3">
-                  <div className="flex justify-between text-xs text-slate-500 font-medium">
+                  {/* Customer Picker */}
+                  <div className="mb-4">
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                      <Users size={12} className="text-slate-400" />
+                      Shipping Target Customer
+                    </label>
+                    <select
+                      value={selectedCustomerId}
+                      onChange={e => setSelectedCustomerId(e.target.value)}
+                      className="w-full bg-white border border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3 py-2 text-xs focus:outline-none transition-all text-slate-800 font-semibold"
+                      required
+                    >
+                      <option value="">-- Choose Shipping Target --</option>
+                      {customers.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex justify-between text-xs text-slate-500 font-medium pt-2 border-t border-dashed border-slate-200">
                     <span>Subtotal</span>
                     <span>${cartSubtotal.toFixed(2)}</span>
                   </div>
@@ -368,21 +398,40 @@ export default function Orders() {
               </div>
             )}
 
-            {/* Item lists */}
-            <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100/80 mb-4 space-y-2.5">
-              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Itemized Manifest</span>
-              {o.items.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center text-xs text-slate-600 font-medium">
-                  <div className="flex items-center gap-1.5">
-                    <Tag size={12} className="text-slate-400" />
-                    <span>{item.productName}</span>
-                    <span className="text-[10px] text-slate-400 px-1.5 py-0.5 rounded-md bg-white border border-slate-100 font-semibold font-mono">
-                      x{item.quantity}
-                    </span>
+            {/* Split layout for manifest and shipping info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              {/* Item lists */}
+              <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100/80 space-y-2.5">
+                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Itemized Manifest</span>
+                {o.items.map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-xs text-slate-600 font-medium">
+                    <div className="flex items-center gap-1.5">
+                      <Tag size={12} className="text-slate-400" />
+                      <span>{item.productName}</span>
+                      <span className="text-[10px] text-slate-400 px-1.5 py-0.5 rounded-md bg-white border border-slate-100 font-semibold font-mono">
+                        x{item.quantity}
+                      </span>
+                    </div>
+                    <span className="text-slate-800 font-semibold">${(item.unitPrice * item.quantity).toFixed(2)}</span>
                   </div>
-                  <span className="text-slate-800 font-semibold">${(item.unitPrice * item.quantity).toFixed(2)}</span>
+                ))}
+              </div>
+
+              {/* Shipping Details */}
+              <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100/80 space-y-2.5 text-xs text-slate-600">
+                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                  <Truck size={12} className="text-slate-400" />
+                  Shipping Destination
+                </span>
+                <div className="font-extrabold text-slate-800 flex items-center gap-1.5">
+                  <Users size={12} className="text-slate-400" />
+                  {o.customerName || 'N/A'}
                 </div>
-              ))}
+                <div className="flex items-start gap-1.5 mt-1 leading-relaxed">
+                  <MapPin size={12} className="text-slate-400 mt-0.5 shrink-0" />
+                  <span>{o.customerAddress || 'No shipping address provided.'}</span>
+                </div>
+              </div>
             </div>
 
             {/* Total Billing */}

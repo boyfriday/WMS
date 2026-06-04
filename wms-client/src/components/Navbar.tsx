@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { Package, Layers, ShoppingBag, ShieldCheck, LogOut, LayoutDashboard } from 'lucide-react';
+import { Package, Layers, ShoppingBag, ShieldCheck, LogOut, LayoutDashboard, Users } from 'lucide-react';
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
@@ -65,10 +65,16 @@ export default function Navbar() {
                   <span className="hidden md:inline">Orders</span>
                 </Link>
                 {user.role === 'Admin' && (
-                  <Link to="/admin" className={navLinkClass('/admin')}>
-                    <ShieldCheck size={17} />
-                    <span className="hidden md:inline">Admin</span>
-                  </Link>
+                  <>
+                    <Link to="/customers" className={navLinkClass('/customers')}>
+                      <Users size={17} />
+                      <span className="hidden md:inline">Customers</span>
+                    </Link>
+                    <Link to="/admin" className={navLinkClass('/admin')}>
+                      <ShieldCheck size={17} />
+                      <span className="hidden md:inline">Admin</span>
+                    </Link>
+                  </>
                 )}
 
                 {/* Vertical Divider */}
