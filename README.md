@@ -64,6 +64,13 @@ docker run -d \
   -e POSTGRES_DB=wms_core \
   postgres:17-alpine
 
+# สำหรับการเชื่อมต่อผ่านเครื่องมือภายนอก (เช่น pgAdmin, DBeaver) จากนอก Docker:
+# - Host: localhost (หรือ 127.0.0.1)
+# - Port: 5432
+# - Maintenance Database: wms_core
+# - Username: wms
+# - Password: wms123
+
 # 2. รัน RabbitMQ Container พร้อม Management Plugin
 docker run -d \
   --name wms-rabbitmq-local \
