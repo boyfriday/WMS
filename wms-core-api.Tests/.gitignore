@@ -1,0 +1,34 @@
+# Build output
+bin/
+obj/
+out/
+publish/
+
+# IDE
+.vs/
+*.user
+*.suo
+*.cache
+
+# NuGet
+*.nupkg
+packages/
+
+# Entity Framework
+*.db
+*.db-journal
+Migrations/
+
+# Secrets
+appsettings.*.json
+!appsettings.Development.json
+!appsettings.json
+secrets.json
+
+# Test results
+TestResults/
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
