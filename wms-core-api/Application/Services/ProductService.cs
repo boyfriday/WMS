@@ -99,4 +99,15 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
             await unitOfWork.CompleteAsync();
         }
     }
+
+    public async Task AddStockAsync(Guid productId, int quantity)
+    {
+        var product = await unitOfWork.Products.GetByIdAsync(productId);
+        if (product != null)
+        {
+            product.Stock += quantity;
+            unitOfWork.Products.Update(product);
+            await unitOfWork.CompleteAsync();
+        }
+    }
 }

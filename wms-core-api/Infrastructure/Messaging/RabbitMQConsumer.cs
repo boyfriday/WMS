@@ -55,8 +55,11 @@ public class RabbitMQConsumer : BackgroundService
                 channel.QueueDeclare("stock.deduct", durable: true, exclusive: false, autoDelete: false);
                 channel.QueueBind("stock.deduct", "wms.direct", "stock.deduct");
 
-                var consumer = new AsyncEventingBasicConsumer(channel);
-                consumer.Received += async (model, ea) =>
+                channel.QueueDeclare("stock.return", durable: true, exclusive: false, autoDelete: false);
+                channel.QueueBind("stock.return", "wms.direct", "stock.return");
+
+                var deductConsumer = new AsyncEventingBasicConsumer(channel);
+                deductConsumer.Received += async (model, ea) =>
                 {
                     try
                     {
@@ -82,7 +85,35 @@ public class RabbitMQConsumer : BackgroundService
                     }
                 };
 
-                channel.BasicConsume("stock.deduct", autoAck: false, consumer);
+                var returnConsumer = new AsyncEventingBasicConsumer(channel);
+                returnConsumer.Received += async (model, ea) =>
+                {
+                    try
+                    {
+                        var body = ea.Body.ToArray();
+                        var message = JsonSerializer.Deserialize<StockDeductMessage>(Encoding.UTF8.GetString(body));
+                        if (message == null) return;
+
+                        _logger.LogInformation("Processing stock return for product {ProductId}, quantity {Quantity}, order {OrderId}",
+                            message.ProductId, message.Quantity, message.OrderId);
+
+                        using var scope = _serviceProvider.CreateScope();
+                        var productService = scope.ServiceProvider.GetRequiredService<IProductService>();
+
+                        await productService.AddStockAsync(Guid.Parse(message.ProductId), message.Quantity);
+                        _logger.LogInformation("Stock returned successfully for product {ProductId}", message.ProductId);
+
+                        channel.BasicAck(ea.DeliveryTag, multiple: false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing stock return message");
+                        channel.BasicNack(ea.DeliveryTag, multiple: false, requeue: true);
+                    }
+                };
+
+                channel.BasicConsume("stock.deduct", autoAck: false, deductConsumer);
+                channel.BasicConsume("stock.return", autoAck: false, returnConsumer);
 
                 _logger.LogInformation("RabbitMQ consumer started");
 

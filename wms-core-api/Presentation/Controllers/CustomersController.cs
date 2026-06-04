@@ -10,7 +10,7 @@ namespace WmsCoreApi.Presentation.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-[Authorize]
+[Authorize(Roles = "Admin,Operator")]
 public class CustomersController(ICustomerService customerService) : ControllerBase
 {
     [HttpGet]

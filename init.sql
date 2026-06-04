@@ -74,7 +74,8 @@ GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO wms;
 INSERT INTO "Users" ("Id", "Email", "PasswordHash", "FullName", "Role", "CreatedAt")
 VALUES 
 ('f0000000-0000-0000-0000-000000000000', 'admin@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'System Administrator', 'Admin', NOW()),
-('f1111111-1111-1111-1111-111111111111', 'operator@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Warehouse Operator', 'User', NOW())
+('f1111111-1111-1111-1111-111111111111', 'operator@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Warehouse Operator', 'Operator', NOW()),
+('f2222222-2222-2222-2222-222222222222', 'warehouse@wms.com', '$2b$10$J9sKibJrjclqUwDQfz8HruVX9LM1A1QEVrKExSRB7XZd4ByOEzxeu', 'Warehouse Controller', 'Warehouse', NOW())
 ON CONFLICT ("Email") DO NOTHING;
 
 -- Insert Mock Categories
@@ -108,6 +109,21 @@ ON CONFLICT ("Email") DO NOTHING;
 -- ==========================================
 \c wms_order;
 
+-- Order Status Table
+CREATE TABLE IF NOT EXISTS order_status (
+    id VARCHAR(20) PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    label VARCHAR(50) NOT NULL
+);
+
+-- Seed statuses (Thai and English labels)
+INSERT INTO order_status (id, name, label) VALUES
+('pending', 'Pending', 'รอขนส่ง'),
+('ordering', 'Ordering', 'กำลังขนส่ง'),
+('completed', 'Completed', 'สำเร็จ'),
+('rejected', 'Rejected', 'ถูกยกเลิก')
+ON CONFLICT (id) DO NOTHING;
+
 -- Orders Table (GORM snake_case naming conventions)
 CREATE TABLE IF NOT EXISTS orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -116,7 +132,7 @@ CREATE TABLE IF NOT EXISTS orders (
     customer_name VARCHAR(255) NOT NULL,
     customer_address TEXT NOT NULL,
     total_amount DECIMAL(18,2) NOT NULL,
-    status VARCHAR(20) DEFAULT 'Pending',
+    status VARCHAR(20) DEFAULT 'pending' REFERENCES order_status(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -131,6 +147,7 @@ CREATE TABLE IF NOT EXISTS order_items (
     product_name VARCHAR(255) NOT NULL,
     quantity INT NOT NULL,
     unit_price DECIMAL(18,2) NOT NULL,
+    returned_quantity INT NOT NULL DEFAULT 0,
     CONSTRAINT fk_order FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items (order_id);
@@ -143,12 +160,12 @@ GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO wms;
 -- Insert Mock Orders
 INSERT INTO orders (id, user_id, customer_id, customer_name, customer_address, total_amount, status, created_at, updated_at)
 VALUES 
-('e0000000-0000-0000-0000-000000000000', 'f1111111-1111-1111-1111-111111111111', '99999999-9999-9999-9999-999999999999', 'Acme Corporation', '123 Business Rd, Industrial Zone, BKK 10110', 139.49, 'Confirmed', NOW() - INTERVAL '1 DAY', NOW() - INTERVAL '1 DAY')
+('e0000000-0000-0000-0000-000000000000', 'f1111111-1111-1111-1111-111111111111', '99999999-9999-9999-9999-999999999999', 'Acme Corporation', '123 Business Rd, Industrial Zone, BKK 10110', 139.49, 'completed', NOW() - INTERVAL '1 DAY', NOW() - INTERVAL '1 DAY')
 ON CONFLICT (id) DO NOTHING;
 
 -- Insert Mock Order Items
-INSERT INTO order_items (id, order_id, product_id, product_name, quantity, unit_price)
+INSERT INTO order_items (id, order_id, product_id, product_name, quantity, unit_price, returned_quantity)
 VALUES 
-('e0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000000', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Mechanical Keyboard', 1, 89.99),
-('e0000000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000000', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Gaming Mouse', 1, 49.50)
+('e0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000000', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Mechanical Keyboard', 1, 89.99, 0),
+('e0000000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000000', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Gaming Mouse', 1, 49.50, 0)
 ON CONFLICT (id) DO NOTHING;

@@ -55,14 +55,8 @@ type CustomerResponse struct {
 // @Success      200  {object}  map[string]interface{}
 // @Router       /orders [get]
 func (h *OrderHandler) GetOrders(c fiber.Ctx) error {
-	userIDStr := c.Locals("userId").(string)
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "invalid user id"})
-	}
-
 	var orders []models.Order
-	if err := h.DB.Where("user_id = ?", userID).Preload("Items").Order("created_at desc").Find(&orders).Error; err != nil {
+	if err := h.DB.Preload("Items").Order("created_at desc").Find(&orders).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": err.Error()})
 	}
 
@@ -79,15 +73,13 @@ func (h *OrderHandler) GetOrders(c fiber.Ctx) error {
 // @Success      200  {object}  map[string]interface{}
 // @Router       /orders/{id} [get]
 func (h *OrderHandler) GetOrder(c fiber.Ctx) error {
-	userIDStr := c.Locals("userId").(string)
-	userID, _ := uuid.Parse(userIDStr)
 	orderID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "invalid order id"})
 	}
 
 	var order models.Order
-	if err := h.DB.Where("id = ? AND user_id = ?", orderID, userID).Preload("Items").First(&order).Error; err != nil {
+	if err := h.DB.Where("id = ?", orderID).Preload("Items").First(&order).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": false, "message": "order not found"})
 	}
 
@@ -206,7 +198,7 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 		CustomerName:    customerData.Data.Name,
 		CustomerAddress: customerData.Data.Address,
 		TotalAmount:     totalAmount,
-		Status:          "Pending",
+		Status:          "pending",
 		Items:           orderItems,
 	}
 
@@ -215,4 +207,140 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"success": true, "data": order})
+}
+
+// UpdateOrderStatus transitions order status (pending -> ordering -> completed, or rejected)
+func (h *OrderHandler) UpdateOrderStatus(c fiber.Ctx) error {
+	orderID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "invalid order id"})
+	}
+
+	var req struct {
+		Status string `json:"status"`
+	}
+	if err := c.Bind().Body(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	newStatus := req.Status
+	if newStatus != "pending" && newStatus != "ordering" && newStatus != "completed" && newStatus != "rejected" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "invalid status"})
+	}
+
+	var order models.Order
+	if err := h.DB.Preload("Items").First(&order, "id = ?", orderID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": false, "message": "order not found"})
+	}
+
+	if order.Status == "completed" || order.Status == "rejected" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "cannot change status of completed or rejected order"})
+	}
+
+	if newStatus == "rejected" {
+		// Restore stock for all items
+		for i, item := range order.Items {
+			returnQty := item.Quantity - item.ReturnedQuantity
+			if returnQty > 0 {
+				err = h.RabbitMQ.PublishStockReturn(config.StockDeductMessage{
+					ProductID: item.ProductID.String(),
+					Quantity:  returnQty,
+					OrderID:   order.ID.String(),
+				})
+				if err != nil {
+					return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "failed to publish stock return"})
+				}
+				order.Items[i].ReturnedQuantity = item.Quantity
+				h.DB.Save(&order.Items[i])
+			}
+		}
+	}
+
+	order.Status = newStatus
+	if err := h.DB.Save(&order).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"success": true, "data": order})
+}
+
+// ClaimOrderItems registers partial or full order items return
+func (h *OrderHandler) ClaimOrderItems(c fiber.Ctx) error {
+	orderID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "invalid order id"})
+	}
+
+	var req struct {
+		Items []struct {
+			ProductID string `json:"productId"`
+			Quantity  int    `json:"quantity"`
+		} `json:"items"`
+	}
+	if err := c.Bind().Body(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	if len(req.Items) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "items to claim required"})
+	}
+
+	var order models.Order
+	if err := h.DB.Preload("Items").First(&order, "id = ?", orderID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": false, "message": "order not found"})
+	}
+
+	if order.Status == "rejected" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "cannot claim items on a rejected order"})
+	}
+
+	for _, claimItem := range req.Items {
+		claimProdID, err := uuid.Parse(claimItem.ProductID)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "invalid product id"})
+		}
+		if claimItem.Quantity <= 0 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "claim quantity must be greater than 0"})
+		}
+
+		found := false
+		for i, item := range order.Items {
+			if item.ProductID == claimProdID {
+				found = true
+				if item.ReturnedQuantity+claimItem.Quantity > item.Quantity {
+					return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+						"success": false,
+						"message": fmt.Sprintf("cannot claim %d items of %s; only %d items remain purchasable",
+							claimItem.Quantity, item.ProductName, item.Quantity-item.ReturnedQuantity),
+					})
+				}
+
+				// Publish stock return to core API
+				err = h.RabbitMQ.PublishStockReturn(config.StockDeductMessage{
+					ProductID: item.ProductID.String(),
+					Quantity:  claimItem.Quantity,
+					OrderID:   order.ID.String(),
+				})
+				if err != nil {
+					return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "failed to publish stock return"})
+				}
+
+				order.Items[i].ReturnedQuantity += claimItem.Quantity
+				if err := h.DB.Save(&order.Items[i]).Error; err != nil {
+					return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": err.Error()})
+				}
+				break
+			}
+		}
+
+		if !found {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"success": false,
+				"message": fmt.Sprintf("product %s not found in order items", claimItem.ProductID),
+			})
+		}
+	}
+
+	h.DB.Preload("Items").First(&order, "id = ?", order.ID)
+	return c.JSON(fiber.Map{"success": true, "data": order})
 }

@@ -39,3 +39,23 @@ func JWTMiddleware() fiber.Handler {
 		return c.Next()
 	}
 }
+
+func RequireRoles(allowedRoles ...string) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		roleVal := c.Locals("role")
+		if roleVal == nil {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"success": false, "message": "unauthorized role"})
+		}
+		role, ok := roleVal.(string)
+		if !ok {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"success": false, "message": "unauthorized role"})
+		}
+
+		for _, allowedRole := range allowedRoles {
+			if strings.EqualFold(role, allowedRole) {
+				return c.Next()
+			}
+		}
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"success": false, "message": "forbidden: insufficient permissions"})
+	}
+}

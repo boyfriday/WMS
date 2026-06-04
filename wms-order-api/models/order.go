@@ -14,19 +14,20 @@ type Order struct {
 	CustomerName    string      `gorm:"type:varchar(255);not null" json:"customerName"`
 	CustomerAddress string      `gorm:"type:text;not null" json:"customerAddress"`
 	TotalAmount     float64     `gorm:"type:decimal(18,2);not null" json:"totalAmount"`
-	Status          string      `gorm:"type:varchar(20);default:'Pending'" json:"status"`
+	Status          string      `gorm:"type:varchar(20);default:'pending'" json:"status"`
 	Items           []OrderItem `gorm:"foreignKey:OrderID" json:"items"`
 	CreatedAt       time.Time   `json:"createdAt"`
 	UpdatedAt       time.Time   `json:"updatedAt"`
 }
 
 type OrderItem struct {
-	ID        uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	OrderID   uuid.UUID `gorm:"type:uuid;not null;index" json:"orderId"`
-	ProductID uuid.UUID `gorm:"type:uuid;not null" json:"productId"`
-	ProductName string  `gorm:"type:varchar(255);not null" json:"productName"`
-	Quantity  int       `gorm:"not null" json:"quantity"`
-	UnitPrice float64   `gorm:"type:decimal(18,2);not null" json:"unitPrice"`
+	ID               uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	OrderID          uuid.UUID `gorm:"type:uuid;not null;index" json:"orderId"`
+	ProductID        uuid.UUID `gorm:"type:uuid;not null" json:"productId"`
+	ProductName      string    `gorm:"type:varchar(255);not null" json:"productName"`
+	Quantity         int       `gorm:"not null" json:"quantity"`
+	UnitPrice        float64   `gorm:"type:decimal(18,2);not null" json:"unitPrice"`
+	ReturnedQuantity int       `gorm:"not null;default:0" json:"returnedQuantity"`
 }
 
 func (o *Order) BeforeCreate(tx *gorm.DB) (err error) {

@@ -29,7 +29,7 @@ public class CategoriesController(ICategoryService categoryService) : Controller
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Operator,Warehouse")]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> Create(CreateCategoryRequest req)
     {
         var res = await categoryService.CreateCategoryAsync(req);
@@ -37,7 +37,7 @@ public class CategoriesController(ICategoryService categoryService) : Controller
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Operator,Warehouse")]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> Update(Guid id, UpdateCategoryRequest req)
     {
         var res = await categoryService.UpdateCategoryAsync(id, req);
@@ -46,7 +46,7 @@ public class CategoriesController(ICategoryService categoryService) : Controller
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Operator,Warehouse")]
     public async Task<ActionResult<ApiResponse<object>>> Delete(Guid id)
     {
         var res = await categoryService.DeleteCategoryAsync(id);

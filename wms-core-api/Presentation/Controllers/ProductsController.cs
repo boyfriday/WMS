@@ -29,7 +29,7 @@ public class ProductsController(IProductService productService) : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Operator,Warehouse")]
     public async Task<ActionResult<ApiResponse<ProductDto>>> Create(CreateProductRequest req)
     {
         var res = await productService.CreateProductAsync(req);
@@ -37,7 +37,7 @@ public class ProductsController(IProductService productService) : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Operator,Warehouse")]
     public async Task<ActionResult<ApiResponse<ProductDto>>> Update(Guid id, UpdateProductRequest req)
     {
         var res = await productService.UpdateProductAsync(id, req);
@@ -46,11 +46,19 @@ public class ProductsController(IProductService productService) : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Operator,Warehouse")]
     public async Task<ActionResult<ApiResponse<object>>> Delete(Guid id)
     {
         var res = await productService.DeleteProductAsync(id);
         if (!res.Success) return NotFound(res);
         return Ok(res);
+    }
+
+    [HttpPost("{id:guid}/receive-stock")]
+    [Authorize(Roles = "Admin,Warehouse")]
+    public async Task<ActionResult<ApiResponse<object>>> ReceiveStock(Guid id, ReceiveStockRequest req)
+    {
+        await productService.AddStockAsync(id, req.Quantity);
+        return Ok(ApiResponse<object>.Ok(new { }));
     }
 }

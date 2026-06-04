@@ -74,6 +74,33 @@ func InitRabbitMQ() (*RabbitMQ, error) {
 		return nil, fmt.Errorf("failed to bind queue: %w", err)
 	}
 
+	_, err = ch.QueueDeclare(
+		"stock.return", // name
+		true,           // durable
+		false,          // delete when unused
+		false,          // exclusive
+		false,          // no-wait
+		nil,            // arguments
+	)
+	if err != nil {
+		ch.Close()
+		conn.Close()
+		return nil, fmt.Errorf("failed to declare queue stock.return: %w", err)
+	}
+
+	err = ch.QueueBind(
+		"stock.return", // queue name
+		"stock.return", // routing key
+		"wms.direct",   // exchange
+		false,
+		nil,
+	)
+	if err != nil {
+		ch.Close()
+		conn.Close()
+		return nil, fmt.Errorf("failed to bind queue stock.return: %w", err)
+	}
+
 	return &RabbitMQ{Conn: conn, Channel: ch}, nil
 }
 
@@ -86,6 +113,25 @@ func (r *RabbitMQ) PublishStockDeduct(msg StockDeductMessage) error {
 	return r.Channel.Publish(
 		"wms.direct",   // exchange
 		"stock.deduct", // routing key
+		false,          // mandatory
+		false,          // immediate
+		amqp.Publishing{
+			ContentType:  "application/json",
+			DeliveryMode: amqp.Persistent,
+			Body:         body,
+		},
+	)
+}
+
+func (r *RabbitMQ) PublishStockReturn(msg StockDeductMessage) error {
+	body, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	return r.Channel.Publish(
+		"wms.direct",   // exchange
+		"stock.return", // routing key
 		false,          // mandatory
 		false,          // immediate
 		amqp.Publishing{
