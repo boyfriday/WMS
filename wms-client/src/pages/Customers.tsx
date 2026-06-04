@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { customerService } from '../services/customerService';
-import type { Customer } from '../types';
-import { useAuthStore } from '../store/authStore';
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { customerService } from "../services/customerService";
+import type { Customer } from "../types";
+import { useAuthStore } from "../store/authStore";
 import {
   Users,
   Plus,
@@ -14,14 +14,19 @@ import {
   Phone,
   MapPin,
   Calendar,
-} from 'lucide-react';
-import ProtectedRoute from '../components/ProtectedRoute';
+} from "lucide-react";
+import ProtectedRoute from "../components/ProtectedRoute";
 
 export default function Customers() {
   const { user } = useAuthStore();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState<Partial<Customer>>({ name: '', email: '', phone: '', address: '' });
+  const [form, setForm] = useState<Partial<Customer>>({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+  });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -33,8 +38,8 @@ export default function Customers() {
       const res = await customerService.getCustomers();
       setCustomers(res.data.data || []);
     } catch (err: any) {
-      console.error('Error fetching customers:', err);
-      const errMsg = 'Failed to load customer list from core registry.';
+      console.error("Error fetching customers:", err);
+      const errMsg = "Failed to load customer list from core registry.";
       setErrorMsg(errMsg);
       toast.error(errMsg);
     } finally {
@@ -53,29 +58,31 @@ export default function Customers() {
       if (editingId) {
         const res = await customerService.updateCustomer(editingId, form);
         if (!res.data.success) {
-          const errMsg = res.data.message || 'Failed to update customer';
+          const errMsg = res.data.message || "Failed to update customer";
           setErrorMsg(errMsg);
           toast.error(errMsg);
           return;
         }
-        toast.success('Customer profile updated successfully!');
+        toast.success("Customer profile updated successfully!");
       } else {
         const res = await customerService.createCustomer(form);
         if (!res.data.success) {
-          const errMsg = res.data.message || 'Failed to create customer';
+          const errMsg = res.data.message || "Failed to create customer";
           setErrorMsg(errMsg);
           toast.error(errMsg);
           return;
         }
-        toast.success('Customer profile registered successfully!');
+        toast.success("Customer profile registered successfully!");
       }
-      setForm({ name: '', email: '', phone: '', address: '' });
+      setForm({ name: "", email: "", phone: "", address: "" });
       setEditingId(null);
       setShowForm(false);
       fetchCustomers();
     } catch (err: any) {
-      console.error('Error saving customer:', err);
-      const errMsg = err.response?.data?.message || 'Error occurred while saving customer record.';
+      console.error("Error saving customer:", err);
+      const errMsg =
+        err.response?.data?.message ||
+        "Error occurred while saving customer record.";
       setErrorMsg(errMsg);
       toast.error(errMsg);
     }
@@ -85,19 +92,25 @@ export default function Customers() {
     setForm({ ...c });
     setEditingId(c.id);
     setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to permanently delete this customer record?')) return;
+    if (
+      !confirm(
+        "Are you sure you want to permanently delete this customer record?",
+      )
+    )
+      return;
     setErrorMsg(null);
     try {
       await customerService.deleteCustomer(id);
-      toast.success('Customer record deleted successfully!');
+      toast.success("Customer record deleted successfully!");
       fetchCustomers();
     } catch (err: any) {
-      console.error('Error deleting customer:', err);
-      const errMsg = err.response?.data?.message || 'Failed to delete customer record.';
+      console.error("Error deleting customer:", err);
+      const errMsg =
+        err.response?.data?.message || "Failed to delete customer record.";
       setErrorMsg(errMsg);
       toast.error(errMsg);
     }
@@ -105,7 +118,7 @@ export default function Customers() {
 
   if (loading) {
     return (
-      <ProtectedRoute allowedRoles={['Admin', 'Operator']}>
+      <ProtectedRoute allowedRoles={["Admin", "Operator"]}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
           <div className="flex justify-between items-center mb-8">
             <div className="h-8 bg-slate-200 rounded w-1/4"></div>
@@ -124,35 +137,36 @@ export default function Customers() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={['Admin', 'Operator']}>
+    <ProtectedRoute allowedRoles={["Admin", "Operator"]}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
         {/* Title Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
               <Users className="text-primary" size={24} />
-              Customer Master Registry
+              Customers
             </h1>
             <p className="text-sm text-slate-500 mt-1">
               Add and manage customer shipping profiles for order distribution.
             </p>
           </div>
-          
+
           <button
             onClick={() => {
               setShowForm(!showForm);
               setEditingId(null);
-              setForm({ name: '', email: '', phone: '', address: '' });
+              setForm({ name: "", email: "", phone: "", address: "" });
               setErrorMsg(null);
             }}
             className={`lg:hidden flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition-all
-              ${showForm
-                ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-none'
-                : 'bg-primary text-white hover:bg-primary-dark shadow-primary/10'
+              ${
+                showForm
+                  ? "bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-none"
+                  : "bg-primary text-white hover:bg-primary-dark shadow-primary/10"
               }`}
           >
-            {showForm ? 'Cancel' : <Plus size={16} />}
-            {showForm ? '' : 'Add Customer'}
+            {showForm ? "Cancel" : <Plus size={16} />}
+            {showForm ? "" : "Add Customer"}
           </button>
         </div>
 
@@ -170,9 +184,9 @@ export default function Customers() {
             <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">
               Registered Accounts ({customers.length})
             </h2>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {customers.map(c => (
+              {customers.map((c) => (
                 <div
                   key={c.id}
                   className="bg-white border border-slate-200/70 p-5 rounded-2xl shadow-xs glow-card flex flex-col justify-between"
@@ -182,10 +196,14 @@ export default function Customers() {
                       <div className="w-8 h-8 rounded-lg bg-indigo-50 text-primary flex items-center justify-center">
                         <Users size={16} />
                       </div>
-                      <span className="text-[10px] font-mono text-slate-400">ID: #{c.id.slice(0, 8)}</span>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        ID: #{c.id.slice(0, 8)}
+                      </span>
                     </div>
-                    <h3 className="text-base font-bold text-slate-800 tracking-tight">{c.name}</h3>
-                    
+                    <h3 className="text-base font-bold text-slate-800 tracking-tight">
+                      {c.name}
+                    </h3>
+
                     <div className="mt-4 space-y-2 text-xs text-slate-500 font-medium">
                       <div className="flex items-center gap-2">
                         <Mail size={12} className="text-slate-400" />
@@ -196,16 +214,23 @@ export default function Customers() {
                         <span>{c.phone}</span>
                       </div>
                       <div className="flex items-start gap-2">
-                        <MapPin size={12} className="text-slate-400 mt-0.5 shrink-0" />
-                        <span className="line-clamp-2 leading-normal">{c.address}</span>
+                        <MapPin
+                          size={12}
+                          className="text-slate-400 mt-0.5 shrink-0"
+                        />
+                        <span className="line-clamp-2 leading-normal">
+                          {c.address}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 text-[10px] text-slate-400 pt-1">
                         <Calendar size={11} />
-                        <span>Added: {new Date(c.createdAt).toLocaleDateString()}</span>
+                        <span>
+                          Added: {new Date(c.createdAt).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Actions */}
                   <div className="flex justify-end gap-1 border-t border-slate-100 mt-4 pt-3">
                     <button
@@ -215,7 +240,7 @@ export default function Customers() {
                     >
                       <Edit2 size={14} />
                     </button>
-                    {user?.role === 'Admin' && (
+                    {user?.role === "Admin" && (
                       <button
                         onClick={() => handleDelete(c.id)}
                         title="Delete Customer"
@@ -231,66 +256,90 @@ export default function Customers() {
               {customers.length === 0 && (
                 <div className="col-span-full bg-white border border-slate-100 rounded-2xl p-8 text-center text-slate-400 flex flex-col items-center gap-2">
                   <AlertCircle size={28} className="text-slate-300" />
-                  <span className="text-sm font-semibold">No customers cataloged</span>
-                  <span className="text-xs text-slate-400">Create a customer profile on the right to start.</span>
+                  <span className="text-sm font-semibold">
+                    No customers cataloged
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    Create a customer profile on the right to start.
+                  </span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Right Side: Form */}
-          <div className={`lg:block lg:sticky lg:top-24 ${showForm ? 'block' : 'hidden lg:block'} animate-slide-up`}>
+          <div
+            className={`lg:block lg:sticky lg:top-24 ${showForm ? "block" : "hidden lg:block"} animate-slide-up`}
+          >
             <div className="bg-white border border-slate-200/80 p-6 rounded-2xl shadow-sm">
               <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-                {editingId ? <Edit2 size={16} className="text-primary" /> : <UserPlus size={18} className="text-primary" />}
-                {editingId ? 'Edit Shipping Profile' : 'New Shipping Profile'}
+                {editingId ? (
+                  <Edit2 size={16} className="text-primary" />
+                ) : (
+                  <UserPlus size={18} className="text-primary" />
+                )}
+                {editingId ? "Edit Shipping Profile" : "New Shipping Profile"}
               </h3>
-              
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Full Name / Company</label>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Full Name / Company
+                  </label>
                   <input
                     type="text"
                     placeholder="e.g. Acme Corporation"
                     className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3.5 py-2.5 text-sm transition-all focus:outline-none text-slate-800"
                     value={form.name}
-                    onChange={e => setForm({ ...form, name: e.target.value })}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Email Address</label>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Email Address
+                  </label>
                   <input
                     type="email"
                     placeholder="e.g. contact@acme.com"
                     className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3.5 py-2.5 text-sm transition-all focus:outline-none text-slate-800"
                     value={form.email}
-                    onChange={e => setForm({ ...form, email: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, email: e.target.value })
+                    }
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Phone Number</label>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Phone Number
+                  </label>
                   <input
                     type="text"
                     placeholder="e.g. 02-123-4567"
                     className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3.5 py-2.5 text-sm transition-all focus:outline-none text-slate-800"
                     value={form.phone}
-                    onChange={e => setForm({ ...form, phone: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, phone: e.target.value })
+                    }
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Shipping Address</label>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Shipping Address
+                  </label>
                   <textarea
                     rows={4}
                     placeholder="123 Business Rd, Industrial Zone, BKK 10110..."
                     className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3.5 py-2.5 text-sm transition-all focus:outline-none text-slate-800"
                     value={form.address}
-                    onChange={e => setForm({ ...form, address: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, address: e.target.value })
+                    }
                     required
                   />
                 </div>
@@ -301,7 +350,12 @@ export default function Customers() {
                       type="button"
                       onClick={() => {
                         setEditingId(null);
-                        setForm({ name: '', email: '', phone: '', address: '' });
+                        setForm({
+                          name: "",
+                          email: "",
+                          phone: "",
+                          address: "",
+                        });
                         setShowForm(false);
                         setErrorMsg(null);
                       }}
@@ -314,7 +368,7 @@ export default function Customers() {
                     type="submit"
                     className="flex-3 bg-primary text-white hover:bg-primary-dark px-4 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-md shadow-primary/10 w-full"
                   >
-                    {editingId ? 'Save Changes' : 'Register Customer'}
+                    {editingId ? "Save Changes" : "Register Customer"}
                   </button>
                 </div>
               </form>

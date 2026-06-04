@@ -87,12 +87,12 @@ export default function Navbar() {
                     <span className="hidden md:inline">Customers</span>
                   </Link>
                 )}
-                {user.role === "Admin" && (
+                {/* {user.role === "Admin" && (
                   <Link to="/admin" className={navLinkClass("/admin")}>
                     <ShieldCheck size={17} />
                     <span className="hidden md:inline">Admin</span>
                   </Link>
-                )}
+                )} */}
 
                 {/* Vertical Divider */}
                 <div className="h-6 w-px bg-slate-200 mx-2 hidden sm:block"></div>
