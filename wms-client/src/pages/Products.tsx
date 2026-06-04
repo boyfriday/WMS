@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
-import { productService, categoryService } from '../services/productService';
-import type { Product, Category } from '../types';
-import { useAuthStore } from '../store/authStore';
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { productService, categoryService } from "../services/productService";
+import type { Product, Category } from "../types";
+import { useAuthStore } from "../store/authStore";
 import {
   Package,
   Plus,
@@ -13,14 +14,19 @@ import {
   AlertCircle,
   Boxes,
   PlusCircle,
-} from 'lucide-react';
+} from "lucide-react";
 
 export default function Products() {
   const { user } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState<Partial<Product>>({ name: '', price: 0, stock: 0, categoryId: '' });
+  const [form, setForm] = useState<Partial<Product>>({
+    name: "",
+    price: 0,
+    stock: 0,
+    categoryId: "",
+  });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
 
@@ -34,18 +40,22 @@ export default function Products() {
     if (!receiveProduct || receiveQuantity <= 0) return;
     try {
       await productService.receiveStock(receiveProduct.id, receiveQuantity);
+      toast.success(
+        `Received ${receiveQuantity} units for ${receiveProduct.name}`,
+      );
       setShowReceiveModal(false);
       setReceiveProduct(null);
       setReceiveQuantity(0);
       fetchData();
-    } catch (err) {
-      console.error('Error receiving stock:', err);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to receive stock.");
+      console.error("Error receiving stock:", err);
     }
   };
-  
+
   // Search and Filter states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("");
 
   const fetchData = async () => {
     setLoading(true);
@@ -56,8 +66,9 @@ export default function Products() {
       ]);
       setProducts(pRes.data.data || []);
       setCategories(cRes.data.data || []);
-    } catch (err) {
-      console.error('Error fetching catalog data:', err);
+    } catch (err: any) {
+      toast.error("Failed to load catalog data.");
+      console.error("Error fetching catalog data:", err);
     } finally {
       setLoading(false);
     }
@@ -72,15 +83,18 @@ export default function Products() {
     try {
       if (editingId) {
         await productService.updateProduct(editingId, form);
+        toast.success("Product updated successfully!");
       } else {
         await productService.createProduct(form);
+        toast.success("Product created successfully!");
       }
-      setForm({ name: '', price: 0, stock: 0, categoryId: '' });
+      setForm({ name: "", price: 0, stock: 0, categoryId: "" });
       setEditingId(null);
       setShowForm(false);
       fetchData();
-    } catch (err) {
-      console.error('Error saving product:', err);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to save product.");
+      console.error("Error saving product:", err);
     }
   };
 
@@ -89,22 +103,27 @@ export default function Products() {
     setEditingId(p.id);
     setShowForm(true);
     // Smooth scroll to form
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+    if (!confirm("Are you sure you want to delete this product?")) return;
     try {
       await productService.deleteProduct(id);
+      toast.success("Product deleted successfully!");
       fetchData();
-    } catch (err) {
-      console.error('Error deleting product:', err);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to delete product.");
+      console.error("Error deleting product:", err);
     }
   };
 
-  const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategoryFilter === '' || p.categoryId === selectedCategoryFilter;
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch = p.name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesCategory =
+      selectedCategoryFilter === "" || p.categoryId === selectedCategoryFilter;
     return matchesSearch && matchesCategory;
   });
 
@@ -127,7 +146,7 @@ export default function Products() {
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             <Package className="text-primary" size={24} />
-            Inventory Catalog
+            Products
           </h1>
           <p className="text-sm text-slate-500 mt-1">
             Browse, search, and manage your warehouse products.
@@ -137,16 +156,17 @@ export default function Products() {
           onClick={() => {
             setShowForm(!showForm);
             setEditingId(null);
-            setForm({ name: '', price: 0, stock: 0, categoryId: '' });
+            setForm({ name: "", price: 0, stock: 0, categoryId: "" });
           }}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition-all duration-200 hover:-translate-y-0.5
-            ${showForm
-              ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-none'
-              : 'bg-primary text-white hover:bg-primary-dark shadow-primary/10 hover:shadow-primary/20'
+            ${
+              showForm
+                ? "bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-none"
+                : "bg-primary text-white hover:bg-primary-dark shadow-primary/10 hover:shadow-primary/20"
             }`}
         >
           {showForm ? <X size={16} /> : <Plus size={16} />}
-          {showForm ? 'Close Form' : 'Add Product'}
+          {showForm ? "Close Form" : "Add Product"}
         </button>
       </div>
 
@@ -154,40 +174,54 @@ export default function Products() {
       {showForm && (
         <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-md mb-8 animate-slide-up">
           <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-            {editingId ? <Edit2 size={16} className="text-primary" /> : <Plus size={18} className="text-primary" />}
-            {editingId ? 'Edit Catalog Entry' : 'Create Catalog Product'}
+            {editingId ? (
+              <Edit2 size={16} className="text-primary" />
+            ) : (
+              <Plus size={18} className="text-primary" />
+            )}
+            {editingId ? "Edit Catalog Entry" : "Create Catalog Product"}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Product Name</label>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Product Name
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. Mechanical Keyboard"
                   className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3.5 py-2.5 text-sm transition-all focus:outline-none text-slate-800"
                   value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
                   required
                 />
               </div>
-              
+
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Category</label>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Category
+                </label>
                 <select
                   className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3.5 py-2.5 text-sm transition-all focus:outline-none text-slate-800"
                   value={form.categoryId}
-                  onChange={e => setForm({ ...form, categoryId: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, categoryId: e.target.value })
+                  }
                   required
                 >
                   <option value="">Select Category</option>
-                  {categories.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Unit Price ($)</label>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Unit Price ($)
+                </label>
                 <input
                   type="number"
                   min={0}
@@ -195,25 +229,31 @@ export default function Products() {
                   placeholder="0.00"
                   className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3.5 py-2.5 text-sm transition-all focus:outline-none text-slate-800"
                   value={form.price}
-                  onChange={e => setForm({ ...form, price: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) =>
+                    setForm({ ...form, price: parseFloat(e.target.value) || 0 })
+                  }
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Stock Level</label>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Stock Level
+                </label>
                 <input
                   type="number"
                   min={0}
                   placeholder="0"
                   className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3.5 py-2.5 text-sm transition-all focus:outline-none text-slate-800"
                   value={form.stock}
-                  onChange={e => setForm({ ...form, stock: parseInt(e.target.value) || 0 })}
+                  onChange={(e) =>
+                    setForm({ ...form, stock: parseInt(e.target.value) || 0 })
+                  }
                   required
                 />
               </div>
             </div>
-            
+
             <div className="flex justify-end gap-3 pt-2">
               <button
                 type="button"
@@ -226,7 +266,7 @@ export default function Products() {
                 type="submit"
                 className="bg-primary text-white hover:bg-primary-dark px-5 py-2 rounded-xl text-xs font-bold transition-colors shadow-md shadow-primary/10"
               >
-                {editingId ? 'Save Changes' : 'Create Product'}
+                {editingId ? "Save Changes" : "Create Product"}
               </button>
             </div>
           </form>
@@ -236,26 +276,34 @@ export default function Products() {
       {/* Search & Filtering Panel */}
       <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm mb-6 flex flex-col md:flex-row items-center gap-4">
         <div className="relative w-full md:flex-1">
-          <Search size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+          <Search
+            size={16}
+            className="absolute left-3.5 top-3.5 text-slate-400"
+          />
           <input
             type="text"
             placeholder="Search products by name..."
             className="w-full border border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/10 rounded-xl pl-10 pr-4 py-2.5 text-sm transition-all focus:outline-none"
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        
+
         <div className="relative w-full md:w-64">
-          <Filter size={15} className="absolute left-3.5 top-3.5 text-slate-400" />
+          <Filter
+            size={15}
+            className="absolute left-3.5 top-3.5 text-slate-400"
+          />
           <select
             className="w-full border border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/10 rounded-xl pl-10 pr-4 py-2.5 text-sm transition-all focus:outline-none bg-white appearance-none"
             value={selectedCategoryFilter}
-            onChange={e => setSelectedCategoryFilter(e.target.value)}
+            onChange={(e) => setSelectedCategoryFilter(e.target.value)}
           >
             <option value="">All Categories</option>
-            {categories.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
             ))}
           </select>
         </div>
@@ -267,16 +315,29 @@ export default function Products() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Product Info</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Price</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Stock Level</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Product Info
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Category
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Price
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Stock Level
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredProducts.map(p => (
-                <tr key={p.id} className="hover:bg-slate-50/70 transition-colors">
+              {filteredProducts.map((p) => (
+                <tr
+                  key={p.id}
+                  className="hover:bg-slate-50/70 transition-colors"
+                >
                   {/* Product Info */}
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -284,16 +345,20 @@ export default function Products() {
                         <Boxes size={18} />
                       </div>
                       <div>
-                        <div className="font-semibold text-slate-800 text-sm">{p.name}</div>
-                        <div className="text-[10px] text-slate-400 font-medium font-mono">ID: #{p.id.slice(0, 8)}</div>
+                        <div className="font-semibold text-slate-800 text-sm">
+                          {p.name}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-medium font-mono">
+                          ID: #{p.id.slice(0, 8)}
+                        </div>
                       </div>
                     </div>
                   </td>
-                  
+
                   {/* Category */}
                   <td className="px-6 py-4">
                     <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium">
-                      {p.category?.name || 'Uncategorized'}
+                      {p.category?.name || "Uncategorized"}
                     </span>
                   </td>
 
@@ -320,7 +385,8 @@ export default function Products() {
                   {/* Action Buttons */}
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      {(user?.role === 'Admin' || user?.role === 'Warehouse') && (
+                      {(user?.role === "Admin" ||
+                        user?.role === "Warehouse") && (
                         <button
                           onClick={() => {
                             setReceiveProduct(p);
@@ -351,14 +417,21 @@ export default function Products() {
                   </td>
                 </tr>
               ))}
-              
+
               {filteredProducts.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
+                  <td
+                    colSpan={5}
+                    className="px-6 py-12 text-center text-slate-400"
+                  >
                     <div className="flex flex-col items-center justify-center gap-2">
                       <AlertCircle size={28} className="text-slate-300" />
-                      <span className="text-sm font-medium">No products found</span>
-                      <span className="text-xs text-slate-400">Try adjusting your search criteria.</span>
+                      <span className="text-sm font-medium">
+                        No products found
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        Try adjusting your search criteria.
+                      </span>
                     </div>
                   </td>
                 </tr>
@@ -386,27 +459,35 @@ export default function Products() {
             </div>
             <form onSubmit={handleReceiveStockSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Product</label>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                  Product
+                </label>
                 <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 font-medium">
                   {receiveProduct.name}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Current Stock</label>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                    Current Stock
+                  </label>
                   <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 font-semibold font-mono">
                     {receiveProduct.stock}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Qty to Receive</label>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                    Qty to Receive
+                  </label>
                   <input
                     type="number"
                     min={1}
                     placeholder="e.g. 50"
                     className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3.5 py-2.5 text-sm transition-all focus:outline-none text-slate-800 font-mono"
-                    value={receiveQuantity || ''}
-                    onChange={e => setReceiveQuantity(parseInt(e.target.value) || 0)}
+                    value={receiveQuantity || ""}
+                    onChange={(e) =>
+                      setReceiveQuantity(parseInt(e.target.value) || 0)
+                    }
                     required
                     autoFocus
                   />

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
 import { authService } from '../services/authService';
 import { productService, categoryService } from '../services/productService';
@@ -60,6 +61,7 @@ export default function Dashboard() {
           pendingOrders,
         });
       } catch (err) {
+        toast.error('Failed to load dashboard statistics.');
         console.error('Error fetching dashboard stats:', err);
         // logout();
       } finally {

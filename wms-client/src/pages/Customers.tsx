@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { customerService } from '../services/customerService';
 import type { Customer } from '../types';
 import { useAuthStore } from '../store/authStore';
@@ -33,7 +34,9 @@ export default function Customers() {
       setCustomers(res.data.data || []);
     } catch (err: any) {
       console.error('Error fetching customers:', err);
-      setErrorMsg('Failed to load customer list from core registry.');
+      const errMsg = 'Failed to load customer list from core registry.';
+      setErrorMsg(errMsg);
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -50,15 +53,21 @@ export default function Customers() {
       if (editingId) {
         const res = await customerService.updateCustomer(editingId, form);
         if (!res.data.success) {
-          setErrorMsg(res.data.message || 'Failed to update customer');
+          const errMsg = res.data.message || 'Failed to update customer';
+          setErrorMsg(errMsg);
+          toast.error(errMsg);
           return;
         }
+        toast.success('Customer profile updated successfully!');
       } else {
         const res = await customerService.createCustomer(form);
         if (!res.data.success) {
-          setErrorMsg(res.data.message || 'Failed to create customer');
+          const errMsg = res.data.message || 'Failed to create customer';
+          setErrorMsg(errMsg);
+          toast.error(errMsg);
           return;
         }
+        toast.success('Customer profile registered successfully!');
       }
       setForm({ name: '', email: '', phone: '', address: '' });
       setEditingId(null);
@@ -66,7 +75,9 @@ export default function Customers() {
       fetchCustomers();
     } catch (err: any) {
       console.error('Error saving customer:', err);
-      setErrorMsg(err.response?.data?.message || 'Error occurred while saving customer record.');
+      const errMsg = err.response?.data?.message || 'Error occurred while saving customer record.';
+      setErrorMsg(errMsg);
+      toast.error(errMsg);
     }
   };
 
@@ -82,10 +93,13 @@ export default function Customers() {
     setErrorMsg(null);
     try {
       await customerService.deleteCustomer(id);
+      toast.success('Customer record deleted successfully!');
       fetchCustomers();
     } catch (err: any) {
       console.error('Error deleting customer:', err);
-      setErrorMsg(err.response?.data?.message || 'Failed to delete customer record.');
+      const errMsg = err.response?.data?.message || 'Failed to delete customer record.';
+      setErrorMsg(errMsg);
+      toast.error(errMsg);
     }
   };
 

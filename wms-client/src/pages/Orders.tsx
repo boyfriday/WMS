@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { orderService } from '../services/orderService';
 import { productService } from '../services/productService';
 import { customerService } from '../services/customerService';
@@ -44,8 +45,10 @@ export default function Orders() {
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
       await orderService.updateStatus(id, status);
+      toast.success(`Order status updated to '${statusThaiLabels[status] || status}' successfully!`);
       fetchData();
-    } catch (err) {
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to update order status.');
       console.error('Error updating order status:', err);
     }
   };
@@ -62,19 +65,20 @@ export default function Orders() {
       .map(([productId, quantity]) => ({ productId, quantity }));
 
     if (itemsToClaim.length === 0) {
-      alert('Please enter a claim quantity for at least one item.');
+      toast.warning('Please enter a claim quantity for at least one item.');
       return;
     }
 
     try {
       await orderService.claimItems(claimOrder.id, itemsToClaim);
+      toast.success('Return claim processed successfully!');
       setShowClaimModal(false);
       setClaimOrder(null);
       setClaimQuantities({});
       fetchData();
-    } catch (err) {
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to process claim. Make sure you are not claiming more than the remaining purchasable quantity.');
       console.error('Error submitting claim:', err);
-      alert('Failed to process claim. Make sure you are not claiming more than the remaining purchasable quantity.');
     }
   };
 
@@ -100,7 +104,8 @@ export default function Orders() {
         setProducts((pRes.data.data || []).filter(p => p.stock > 0));
         setCustomers(cRes.data.data || []);
       }
-    } catch (err) {
+    } catch (err: any) {
+      toast.error('Failed to load order data.');
       console.error('Error loading order data:', err);
     } finally {
       setLoading(false);
@@ -117,7 +122,7 @@ export default function Orders() {
     const existing = cart.find(c => c.productId === productId);
     if (existing) {
       if (existing.quantity >= p.stock) {
-        alert(`Cannot add more. Only ${p.stock} units available in inventory.`);
+        toast.warning(`Cannot add more. Only ${p.stock} units available in inventory.`);
         return;
       }
       setCart(cart.map(c => c.productId === productId ? { ...c, quantity: c.quantity + 1 } : c));
@@ -130,7 +135,7 @@ export default function Orders() {
     const p = products.find(x => x.id === productId);
     if (!p) return;
     if (qty > p.stock) {
-      alert(`Only ${p.stock} units available in stock.`);
+      toast.warning(`Only ${p.stock} units available in stock.`);
       return;
     }
     if (qty <= 0) {
@@ -141,15 +146,17 @@ export default function Orders() {
   };
 
   const handleSubmit = async () => {
-    if (cart.length === 0) return alert('Please add items to cart');
-    if (!selectedCustomerId) return alert('Please select a shipping customer');
+    if (cart.length === 0) return toast.warning('Please add items to cart');
+    if (!selectedCustomerId) return toast.warning('Please select a shipping customer');
     try {
       await orderService.createOrder({ items: cart, customerId: selectedCustomerId });
+      toast.success('Order placed successfully!');
       setCart([]);
       setSelectedCustomerId('');
       setShowForm(false);
       fetchData();
-    } catch (err) {
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to place order.');
       console.error('Error placing order:', err);
     }
   };
