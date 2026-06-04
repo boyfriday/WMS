@@ -10,6 +10,7 @@ import Categories from './pages/Categories';
 import Orders from './pages/Orders';
 import Customers from './pages/Customers';
 import Admin from './pages/Admin';
+import PrintOrder from './pages/PrintOrder';
 import { useAuthStore } from './store/authStore';
 import { authService } from './services/authService';
 
@@ -34,11 +35,12 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-        <Route path="/categories" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
-        <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-        <Route path="/customers" element={<ProtectedRoute requireAdmin><Customers /></ProtectedRoute>} />
-        <Route path="/admin" element={<Admin />} />
+        <Route path="/products" element={<ProtectedRoute allowedRoles={['Admin', 'Operator', 'Warehouse']}><Products /></ProtectedRoute>} />
+        <Route path="/categories" element={<ProtectedRoute allowedRoles={['Admin', 'Operator', 'Warehouse']}><Categories /></ProtectedRoute>} />
+        <Route path="/orders" element={<ProtectedRoute allowedRoles={['Admin', 'Operator']}><Orders /></ProtectedRoute>} />
+        <Route path="/orders/print/:id" element={<ProtectedRoute allowedRoles={['Admin', 'Operator']}><PrintOrder /></ProtectedRoute>} />
+        <Route path="/customers" element={<ProtectedRoute allowedRoles={['Admin', 'Operator']}><Customers /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute allowedRoles={['Admin']}><Admin /></ProtectedRoute>} />
       </Routes>
     </div>
   );

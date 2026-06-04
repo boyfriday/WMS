@@ -2,7 +2,7 @@ export interface User {
   id: string;
   email: string;
   fullName: string;
-  role: 'Admin' | 'User';
+  role: 'Admin' | 'Operator' | 'Warehouse' | 'User';
 }
 
 export interface Category {
@@ -26,6 +26,7 @@ export interface OrderItem {
   productName: string;
   quantity: number;
   unitPrice: number;
+  returnedQuantity: number;
 }
 
 export interface Order {
@@ -36,7 +37,7 @@ export interface Order {
   customerAddress: string;
   items: OrderItem[];
   totalAmount: number;
-  status: 'Pending' | 'Confirmed' | 'Shipped' | 'Delivered' | 'Cancelled';
+  status: 'pending' | 'ordering' | 'completed' | 'rejected';
   createdAt: string;
 }
 

@@ -4,17 +4,17 @@ import type { ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
-  requireAdmin?: boolean;
+  allowedRoles?: string[];
 }
 
-export default function ProtectedRoute({ children, requireAdmin }: Props) {
+export default function ProtectedRoute({ children, allowedRoles }: Props) {
   const { isAuthenticated, user } = useAuthStore();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (requireAdmin && user?.role !== 'Admin') {
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }
 

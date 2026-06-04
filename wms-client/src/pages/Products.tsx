@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { productService, categoryService } from '../services/productService';
 import type { Product, Category } from '../types';
+import { useAuthStore } from '../store/authStore';
 import {
   Package,
   Plus,
@@ -11,15 +12,36 @@ import {
   Trash2,
   AlertCircle,
   Boxes,
+  PlusCircle,
 } from 'lucide-react';
 
 export default function Products() {
+  const { user } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<Partial<Product>>({ name: '', price: 0, stock: 0, categoryId: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+
+  // Receive stock modal states
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [receiveProduct, setReceiveProduct] = useState<Product | null>(null);
+  const [receiveQuantity, setReceiveQuantity] = useState(0);
+
+  const handleReceiveStockSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!receiveProduct || receiveQuantity <= 0) return;
+    try {
+      await productService.receiveStock(receiveProduct.id, receiveQuantity);
+      setShowReceiveModal(false);
+      setReceiveProduct(null);
+      setReceiveQuantity(0);
+      fetchData();
+    } catch (err) {
+      console.error('Error receiving stock:', err);
+    }
+  };
   
   // Search and Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -298,6 +320,19 @@ export default function Products() {
                   {/* Action Buttons */}
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
+                      {(user?.role === 'Admin' || user?.role === 'Warehouse') && (
+                        <button
+                          onClick={() => {
+                            setReceiveProduct(p);
+                            setReceiveQuantity(0);
+                            setShowReceiveModal(true);
+                          }}
+                          title="Receive Stock"
+                          className="p-1.5 rounded-lg text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                        >
+                          <PlusCircle size={15} />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleEdit(p)}
                         title="Edit entry"
@@ -332,6 +367,70 @@ export default function Products() {
           </table>
         </div>
       </div>
+
+      {/* Receive Stock Modal */}
+      {showReceiveModal && receiveProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xl max-w-md w-full mx-4 animate-scale-up">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Boxes className="text-primary" size={20} />
+                Receive Inventory Stock
+              </h3>
+              <button
+                onClick={() => setShowReceiveModal(false)}
+                className="text-slate-400 hover:bg-slate-100 hover:text-slate-600 p-1.5 rounded-lg transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleReceiveStockSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Product</label>
+                <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 font-medium">
+                  {receiveProduct.name}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Current Stock</label>
+                  <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 font-semibold font-mono">
+                    {receiveProduct.stock}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Qty to Receive</label>
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder="e.g. 50"
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl px-3.5 py-2.5 text-sm transition-all focus:outline-none text-slate-800 font-mono"
+                    value={receiveQuantity || ''}
+                    onChange={e => setReceiveQuantity(parseInt(e.target.value) || 0)}
+                    required
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowReceiveModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-emerald-600 text-white hover:bg-emerald-700 px-5 py-2 rounded-xl text-xs font-bold transition-colors shadow-md shadow-emerald-600/10"
+                >
+                  Receive Stock
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

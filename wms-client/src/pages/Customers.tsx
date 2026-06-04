@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { customerService } from '../services/customerService';
 import type { Customer } from '../types';
+import { useAuthStore } from '../store/authStore';
 import {
   Users,
   Plus,
@@ -16,6 +17,7 @@ import {
 import ProtectedRoute from '../components/ProtectedRoute';
 
 export default function Customers() {
+  const { user } = useAuthStore();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<Partial<Customer>>({ name: '', email: '', phone: '', address: '' });
@@ -89,7 +91,7 @@ export default function Customers() {
 
   if (loading) {
     return (
-      <ProtectedRoute requireAdmin>
+      <ProtectedRoute allowedRoles={['Admin', 'Operator']}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
           <div className="flex justify-between items-center mb-8">
             <div className="h-8 bg-slate-200 rounded w-1/4"></div>
@@ -108,7 +110,7 @@ export default function Customers() {
   }
 
   return (
-    <ProtectedRoute requireAdmin>
+    <ProtectedRoute allowedRoles={['Admin', 'Operator']}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
         {/* Title Header */}
         <div className="flex justify-between items-center mb-8">
@@ -199,13 +201,15 @@ export default function Customers() {
                     >
                       <Edit2 size={14} />
                     </button>
-                    <button
-                      onClick={() => handleDelete(c.id)}
-                      title="Delete Customer"
-                      className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {user?.role === 'Admin' && (
+                      <button
+                        onClick={() => handleDelete(c.id)}
+                        title="Delete Customer"
+                        className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

@@ -8,6 +8,8 @@ export const productService = {
   updateProduct: (id: string, data: Partial<Product>) =>
     coreApi.put<ApiResponse<Product>>(`/products/${id}`, data),
   deleteProduct: (id: string) => coreApi.delete<ApiResponse<void>>(`/products/${id}`),
+  receiveStock: (id: string, quantity: number) =>
+    coreApi.post<ApiResponse<void>>(`/products/${id}/receive-stock`, { quantity }),
 };
 
 export const categoryService = {

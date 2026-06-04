@@ -50,7 +50,7 @@ export default function Dashboard() {
         const orders = ordRes.data.data || [];
 
         const lowStock = products.filter(p => p.stock < 10).length;
-        const pendingOrders = orders.filter(o => o.status === 'Pending').length;
+        const pendingOrders = orders.filter(o => o.status === 'pending').length;
 
         setStats({
           products: products.length,

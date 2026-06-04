@@ -34,6 +34,48 @@ export default function Orders() {
   // Search products inside checkout
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Claim modal states
+  const [showClaimModal, setShowClaimModal] = useState(false);
+  const [claimOrder, setClaimOrder] = useState<Order | null>(null);
+  const [claimQuantities, setClaimQuantities] = useState<Record<string, number>>({});
+
+  const handleUpdateStatus = async (id: string, status: string) => {
+    try {
+      await orderService.updateStatus(id, status);
+      fetchData();
+    } catch (err) {
+      console.error('Error updating order status:', err);
+    }
+  };
+
+  const handlePrintInvoice = (id: string) => {
+    window.open(`/orders/print/${id}`, '_blank');
+  };
+
+  const handleClaimSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!claimOrder) return;
+    const itemsToClaim = Object.entries(claimQuantities)
+      .filter(([_, qty]) => qty > 0)
+      .map(([productId, quantity]) => ({ productId, quantity }));
+
+    if (itemsToClaim.length === 0) {
+      alert('Please enter a claim quantity for at least one item.');
+      return;
+    }
+
+    try {
+      await orderService.claimItems(claimOrder.id, itemsToClaim);
+      setShowClaimModal(false);
+      setClaimOrder(null);
+      setClaimQuantities({});
+      fetchData();
+    } catch (err) {
+      console.error('Error submitting claim:', err);
+      alert('Failed to process claim. Make sure you are not claiming more than the remaining purchasable quantity.');
+    }
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -100,24 +142,29 @@ export default function Orders() {
   };
 
   const statusColor: Record<string, string> = {
-    Pending: 'bg-warning/10 text-warning border-warning/20',
-    Confirmed: 'bg-primary/10 text-primary border-primary/20',
-    Shipped: 'bg-info/10 text-info border-info/20',
-    Delivered: 'bg-success/10 text-success border-success/20',
-    Cancelled: 'bg-danger/10 text-danger border-danger/20',
+    pending: 'bg-amber-50 text-amber-700 border-amber-100',
+    ordering: 'bg-blue-50 text-blue-700 border-blue-100',
+    completed: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+    rejected: 'bg-rose-50 text-rose-700 border-rose-100',
   };
 
   const statusIcons: Record<string, React.ReactNode> = {
-    Pending: <Hourglass size={14} />,
-    Confirmed: <Check size={14} />,
-    Shipped: <Truck size={14} />,
-    Delivered: <CheckCircle2 size={14} />,
-    Cancelled: <X size={14} />,
+    pending: <Hourglass size={14} />,
+    ordering: <Truck size={14} />,
+    completed: <CheckCircle2 size={14} />,
+    rejected: <X size={14} />,
+  };
+
+  const statusThaiLabels: Record<string, string> = {
+    pending: 'รอขนส่ง',
+    ordering: 'กำลังขนส่ง',
+    completed: 'สำเร็จ',
+    rejected: 'ถูกยกเลิก',
   };
 
   // Get status stage step index for tracking line
   const getStatusStepIndex = (status: string) => {
-    const steps = ['Pending', 'Confirmed', 'Shipped', 'Delivered'];
+    const steps = ['pending', 'ordering', 'completed'];
     return steps.indexOf(status);
   };
 
@@ -348,15 +395,15 @@ export default function Orders() {
               </div>
               
               <div className="flex items-center gap-2">
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border capitalize ${statusColor[o.status] || 'bg-slate-50'}`}>
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${statusColor[o.status] || 'bg-slate-50'}`}>
                   {statusIcons[o.status]}
-                  {o.status}
+                  {statusThaiLabels[o.status] || o.status}
                 </span>
               </div>
             </div>
 
             {/* Stepper Timeline Tracker (For active non-cancelled stages) */}
-            {o.status !== 'Cancelled' && (
+            {o.status !== 'rejected' && (
               <div className="mb-6 max-w-xl mx-auto px-4">
                 <div className="relative flex justify-between items-center w-full">
                   {/* Background Progress Bar */}
@@ -366,12 +413,12 @@ export default function Orders() {
                   <div
                     className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-indigo-500 rounded-full z-0 transition-all duration-500"
                     style={{
-                      width: `${(getStatusStepIndex(o.status) / 3) * 100}%`,
+                      width: `${(getStatusStepIndex(o.status) / 2) * 100}%`,
                     }}
                   ></div>
 
                   {/* Stepper points */}
-                  {['Pending', 'Confirmed', 'Shipped', 'Delivered'].map((step, idx) => {
+                  {['pending', 'ordering', 'completed'].map((step, idx) => {
                     const stepIdx = getStatusStepIndex(o.status);
                     const isCompleted = idx <= stepIdx;
                     const isActive = idx === stepIdx;
@@ -389,7 +436,7 @@ export default function Orders() {
                           {isCompleted ? <Check size={10} /> : idx + 1}
                         </div>
                         <span className={`text-[10px] font-bold mt-1.5 ${isCompleted ? 'text-slate-700' : 'text-slate-400'}`}>
-                          {step}
+                          {statusThaiLabels[step]}
                         </span>
                       </div>
                     );
@@ -405,12 +452,17 @@ export default function Orders() {
                 <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Itemized Manifest</span>
                 {o.items.map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center text-xs text-slate-600 font-medium">
-                    <div className="flex items-center gap-1.5">
-                      <Tag size={12} className="text-slate-400" />
-                      <span>{item.productName}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Tag size={12} className="text-slate-400 shrink-0" />
+                      <span className="truncate max-w-[120px] sm:max-w-none">{item.productName}</span>
                       <span className="text-[10px] text-slate-400 px-1.5 py-0.5 rounded-md bg-white border border-slate-100 font-semibold font-mono">
                         x{item.quantity}
                       </span>
+                      {item.returnedQuantity > 0 && (
+                        <span className="text-[9px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-md border border-amber-100/60 font-semibold">
+                          Returned: {item.returnedQuantity}
+                        </span>
+                      )}
                     </div>
                     <span className="text-slate-800 font-semibold">${(item.unitPrice * item.quantity).toFixed(2)}</span>
                   </div>
@@ -434,13 +486,73 @@ export default function Orders() {
               </div>
             </div>
 
-            {/* Total Billing */}
-            <div className="flex justify-between items-center font-bold text-sm text-slate-800 border-t border-dashed border-slate-200 pt-3.5 px-1">
-              <span className="flex items-center gap-1.5">
-                <Receipt size={15} className="text-slate-400" />
-                Grand Total Billing
-              </span>
-              <span className="text-base text-slate-900 font-black">${o.totalAmount.toFixed(2)}</span>
+            {/* Action Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-slate-200 pt-3.5 mt-3.5">
+              <div className="flex flex-wrap gap-2">
+                {o.status === 'pending' && (
+                  <>
+                    <button
+                      onClick={() => handleUpdateStatus(o.id, 'ordering')}
+                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors flex items-center gap-1 border border-blue-100"
+                    >
+                      <Truck size={12} />
+                      Ship Order
+                    </button>
+                    <button
+                      onClick={() => handleUpdateStatus(o.id, 'rejected')}
+                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors flex items-center gap-1 border border-rose-100"
+                    >
+                      <X size={12} />
+                      Cancel Order
+                    </button>
+                  </>
+                )}
+                {o.status === 'ordering' && (
+                  <>
+                    <button
+                      onClick={() => handleUpdateStatus(o.id, 'completed')}
+                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors flex items-center gap-1 border border-emerald-100"
+                    >
+                      <CheckCircle2 size={12} />
+                      Complete Order
+                    </button>
+                    <button
+                      onClick={() => handleUpdateStatus(o.id, 'rejected')}
+                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors flex items-center gap-1 border border-rose-100"
+                    >
+                      <X size={12} />
+                      Cancel Order
+                    </button>
+                  </>
+                )}
+                {o.status === 'completed' && (
+                  <button
+                    onClick={() => handlePrintInvoice(o.id)}
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors flex items-center gap-1 border border-indigo-100"
+                  >
+                    <Receipt size={12} />
+                    Print Invoice
+                  </button>
+                )}
+                {(o.status === 'ordering' || o.status === 'completed') && (
+                  <button
+                    onClick={() => {
+                      setClaimOrder(o);
+                      setClaimQuantities(o.items.reduce((acc, item) => ({ ...acc, [item.productId]: 0 }), {}));
+                      setShowClaimModal(true);
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors flex items-center gap-1 border border-amber-100"
+                  >
+                    <AlertCircle size={12} />
+                    Claim Items (Returns)
+                  </button>
+                )}
+              </div>
+              
+              <div className="font-bold text-sm text-slate-800 flex items-center gap-1.5 ml-auto">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Grand Total:</span>
+                <span className="text-base text-slate-900 font-black">${o.totalAmount.toFixed(2)}</span>
+              </div>
             </div>
           </div>
         ))}
@@ -453,6 +565,81 @@ export default function Orders() {
           </div>
         )}
       </div>
+
+      {/* Claim Items Return Modal */}
+      {showClaimModal && claimOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xl max-w-lg w-full mx-4 animate-scale-up">
+            <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <AlertCircle className="text-amber-500" size={20} />
+                Return Claim items - Invoice #{claimOrder.id.slice(0, 8)}
+              </h3>
+              <button
+                onClick={() => setShowClaimModal(false)}
+                className="text-slate-400 hover:bg-slate-100 hover:text-slate-600 p-1.5 rounded-lg transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleClaimSubmit} className="space-y-4">
+              <p className="text-xs text-slate-500">
+                Specify returned quantities for items in this order. Returned items will be added back to the inventory stock.
+              </p>
+              
+              <div className="border border-slate-100 rounded-xl divide-y divide-slate-100 max-h-[250px] overflow-y-auto bg-slate-50/50">
+                {claimOrder.items.map((item) => {
+                  const claimable = item.quantity - item.returnedQuantity;
+                  return (
+                    <div key={item.productId} className="flex justify-between items-center p-3 text-xs bg-white">
+                      <div>
+                        <div className="font-semibold text-slate-800">{item.productName}</div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">
+                          Purchased: {item.quantity} | Returned: {item.returnedQuantity} | <span className="font-bold text-slate-500">Remaining: {claimable}</span>
+                        </div>
+                      </div>
+                      <div className="w-24">
+                        <input
+                          type="number"
+                          min={0}
+                          max={claimable}
+                          placeholder="0"
+                          className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-mono text-center"
+                          value={claimQuantities[item.productId] || ''}
+                          onChange={(e) => {
+                            const val = Math.min(claimable, Math.max(0, parseInt(e.target.value) || 0));
+                            setClaimQuantities({
+                              ...claimQuantities,
+                              [item.productId]: val
+                            });
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowClaimModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-amber-600 text-white hover:bg-amber-700 px-5 py-2 rounded-xl text-xs font-bold transition-colors shadow-md shadow-amber-600/10"
+                >
+                  Submit Claims
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
