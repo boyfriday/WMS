@@ -61,7 +61,7 @@ public class AuthServiceTests
 
         // Assert
         Assert.True(result.Success);
-        Assert.Equal("jwt-token-123", result.Data.AccessToken);
+        Assert.Equal("jwt-token-123", result.Data.Token);
         Assert.Equal("refresh-token-123", result.Data.RefreshToken);
         Assert.Equal("test@test.com", result.Data.User.Email);
         _mockUserRepo.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Once);
@@ -131,7 +131,7 @@ public class AuthServiceTests
 
         // Assert
         Assert.True(result.Success);
-        Assert.Equal("jwt-token-abc", result.Data.AccessToken);
+        Assert.Equal("jwt-token-abc", result.Data.Token);
         Assert.Equal("refresh-token-abc", result.Data.RefreshToken);
         Assert.Equal("Admin", result.Data.User.Role);
         _mockUserRepo.Verify(r => r.Update(user), Times.Once);
@@ -183,7 +183,7 @@ public class AuthServiceTests
 
         // Assert
         Assert.True(result.Success);
-        Assert.Equal("jwt-new", result.Data.AccessToken);
+        Assert.Equal("jwt-new", result.Data.Token);
         Assert.Equal("refresh-new", result.Data.RefreshToken);
         _mockUserRepo.Verify(r => r.Update(user), Times.Once);
         _mockUow.Verify(u => u.CompleteAsync(), Times.Once);
